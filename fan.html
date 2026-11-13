@@ -181,6 +181,10 @@ details[open]>summary .fcLab{background:#f5c518;color:#111}
 .fcLab::before{content:"▸ "}details[open]>summary .fcLab::before{content:"▾ "}
 .fcDone{display:inline-block;margin-top:5px;font:700 11px "JetBrains Mono",monospace;color:#7dfc9a;background:#173322;border:1px solid #2f6b45;border-radius:6px;padding:1px 6px}
 .fcGo{display:inline-block;margin:6px 0 0 6px;background:transparent;border:1px solid #3a3f46;color:#cfd3d8;border-radius:8px;padding:4px 9px;font:600 12px Barlow,system-ui,sans-serif}
+.fcTop{position:sticky;top:-14px;z-index:2;display:flex;align-items:center;gap:10px;margin:-14px -14px 8px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.fcTop h3{margin:0;flex:1}
+.fcBack{background:#24282d;border:1px solid #f5c518;color:#f5c518;border-radius:10px;padding:8px 12px;font:700 14px Barlow,system-ui,sans-serif;min-height:40px}
+#fcReturn{position:fixed;top:10px;left:10px;z-index:35;display:none;background:#f5c518;color:#111;border:0;border-radius:22px;padding:10px 16px;font:700 14px Barlow,system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.55)}
 </style>
 </head>
 <body>
@@ -238,7 +242,7 @@ details[open]>summary .fcLab{background:#f5c518;color:#111}
     <div class="knob" title="Turn dial">⟳<small>DIAL</small></div>
   </div>
 </div>
-<div id="modalBg" class="modal-bg hidden" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
+<div id="modalBg" class="modal-bg hidden" onclick="if(event.target===this){fcSave();closeModal()}"><div class="modal" id="modal"></div></div>
 
 <script>
 function career(fixed,stars){try{const c=JSON.parse(localStorage.getItem('ce_career')||'{}');c.jobs=(c.jobs||0)+1;c.fixed=(c.fixed||0)+(fixed?1:0);c.stars=(c.stars||0)+stars;localStorage.setItem('ce_career',JSON.stringify(c));}catch(e){}}
@@ -630,8 +634,13 @@ function fcRender(n,depth){
   if(n.br){h+='<div class="fcBr">'+n.br.map(([lab,child])=>'<details'+(depth<1?' open':'')+'><summary><span class="fcLab">'+lab+'</span></summary>'+fcRender(child,depth+1)+'</details>').join('')+'</div>';}
   return h;
 }
+let fcState=null;
+function fcSave(){const m=$('modal');if(!m.querySelector('.fc'))return;fcState={open:[...m.querySelectorAll('.fc details')].map(d=>d.open),top:m.scrollTop};}
+function fcClose(){fcSave();closeModal();}
 function openFlow(){
-  openModal('<h3>Diagnostic flow chart</h3><p>Start at the top. Answer each question with a measurement, then tap the matching answer to open the next step. <b>✓ measured</b> marks the checks you\'ve already made on this job.</p><div class="fc">'+fcRender(FLOW,0)+'</div><button class="ghost" onclick="closeModal()">Close</button>');
+  const r=$('fcReturn');if(r)r.style.display='none';
+  openModal('<div class="fcTop"><button class="fcBack" onclick="fcClose()">‹ Back</button><h3>Diagnostic flow chart</h3></div><p>Start at the top. Answer each question with a measurement, then tap the matching answer to open the next step. <b>✓ measured</b> marks the checks you\'ve already made on this job.</p><div class="fc">'+fcRender(FLOW,0)+'</div><button class="ghost" onclick="fcClose()">‹ Back</button>');
+  if(fcState){const ds=$('modal').querySelectorAll('.fc details');fcState.open.forEach((o,i)=>{if(ds[i])ds[i].open=o;});$('modal').scrollTop=fcState.top;}
 }
 
 const FLOW={q:'Key ON, fan commanded ON with the scan tool. What does the fan do?',br:[
@@ -654,7 +663,7 @@ const FLOW={q:'Key ON, fan commanded ON with the scan tool. What does the fan do
          ['About 12 V',{q:'Now check ECM connector C3 pin 45 (GRN/YEL). What does it read?',tp:['ecm45'],loc:'ecm',br:[
            ['About 0 V',{end:'12 V at one end of the GRN/YEL wire and 0 V at the other: that wire is open between relay 85 and ECM pin 45.'}],
            ['About 12 V',{end:'The wire is good but the ECM isn\'t pulling it to ground: check the ECM command and driver (and its powers and grounds) before condemning it.'}]]}]]}]]}]]}]]}]]};
-function fcGo(loc){closeModal();go(loc);setActive('red');document.getElementById('view').scrollIntoView({behavior:'smooth'});}
+function fcGo(loc){fcSave();const r=$('fcReturn');if(r)r.style.display='block';closeModal();go(loc);setActive('red');document.getElementById('view').scrollIntoView({behavior:'smooth'});}
 
 /* ===== GUIDED FLOW ===== */
 let guideOpen=true;
@@ -679,5 +688,6 @@ function useHint(){const hs=HINTS[job.orig]||[];if(job.hints>=hs.length)return;j
 
 newJob();
 </script>
+<button id="fcReturn" onclick="openFlow()">‹ Back to flow chart</button>
 </body>
 </html>
