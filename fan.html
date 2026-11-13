@@ -167,6 +167,20 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
 .knob{width:48px;height:48px;font-size:17px}
 .dmmIn{padding:6px 10px}
 .vh span{display:none}
+.fc{font-size:14px;line-height:1.4}
+.fcNode{background:#1c1f23;border:1px solid #3a3f46;border-left:4px solid #f5c518;border-radius:8px;padding:8px 10px;margin:6px 0;color:#e9ebee}
+.fcNode.end{border-left-color:#7dfc9a;background:#15201a}
+.fcK{font:700 12px "JetBrains Mono",monospace;color:#f5c518}
+.fcNode.end .fcK{color:#7dfc9a}
+.fcBr{margin-left:10px;padding-left:10px;border-left:2px solid #3a3f46}
+.fcBr details{margin-top:4px}
+.fcBr summary{cursor:pointer;list-style:none;padding:2px 0}
+.fcBr summary::-webkit-details-marker{display:none}
+.fcLab{display:inline-block;font:700 12px "JetBrains Mono",monospace;background:#24282d;border:1px solid #f5c518;border-radius:12px;padding:3px 10px;color:#f5c518}
+details[open]>summary .fcLab{background:#f5c518;color:#111}
+.fcLab::before{content:"▸ "}details[open]>summary .fcLab::before{content:"▾ "}
+.fcDone{display:inline-block;margin-top:5px;font:700 11px "JetBrains Mono",monospace;color:#7dfc9a;background:#173322;border:1px solid #2f6b45;border-radius:6px;padding:1px 6px}
+.fcGo{display:inline-block;margin:6px 0 0 6px;background:transparent;border:1px solid #3a3f46;color:#cfd3d8;border-radius:8px;padding:4px 9px;font:600 12px Barlow,system-ui,sans-serif}
 </style>
 </head>
 <body>
@@ -512,7 +526,7 @@ const DIAGRAM='<svg viewBox="0 0 400 470" xmlns="http://www.w3.org/2000/svg"><re
 function go(k){loc=k;render();}
 function setActive(c){active=c;render();}
 function probe(id){
-  beep(1500,.03);M.leads[active]=id;M.clamp=false;
+  beep(1500,.03);M.leads[active]=id;job.probed=job.probed||{};job.probed[id]=1;M.clamp=false;
   const key=[M.leads.red,M.leads.blk,M.dial,M.red,JSON.stringify(S),job.fault].join('|');
   render();
   if(M.leads.red&&M.leads.blk){const rr=M.leads.red;if(S.key&&S.cmd&&(rr==='c1p'||rr==='c1n'))job.flags.fan=true;if(['f12a','f12b','r30','r87','r85','r86','ecm45','g1','body'].includes(rr)||(rr==='c1n'&&M.leads.blk!=='bat_n'))job.flags.trace=true;}
@@ -605,6 +619,43 @@ const HINTS={
  motor:['C1 has power on cavity 1 and a ground on cavity 2, but nothing turns. Check current with the amp clamp (Meter dial).','0 A with good power and ground means the motor is open. Confirm: unplug C1, key off, ohms across the fan side.'],
 };
 
+
+/* ===== DIAGNOSTIC FLOW CHART ===== */
+function fcRender(n,depth){
+  const done=(n.tp||[]).some(t=>job.probed&&job.probed[t]);
+  let h='<div class="fcNode'+(n.end?' end':'')+'"><div>'+(n.end?'<span class="fcK">→</span> ':'<span class="fcK">?</span> ')+(n.q||n.end)+'</div>';
+  if(done)h+='<span class="fcDone">✓ measured</span>';
+  if(n.loc)h+='<button class="fcGo" onclick="fcGo(\''+n.loc+'\')">Go measure ›</button>';
+  h+='</div>';
+  if(n.br){h+='<div class="fcBr">'+n.br.map(([lab,child])=>'<details'+(depth<1?' open':'')+'><summary><span class="fcLab">'+lab+'</span></summary>'+fcRender(child,depth+1)+'</details>').join('')+'</div>';}
+  return h;
+}
+function openFlow(){
+  openModal('<h3>Diagnostic flow chart</h3><p>Start at the top. Answer each question with a measurement, then tap the matching answer to open the next step. <b>✓ measured</b> marks the checks you\'ve already made on this job.</p><div class="fc">'+fcRender(FLOW,0)+'</div><button class="ghost" onclick="closeModal()">Close</button>');
+}
+
+const FLOW={q:'Key ON, fan commanded ON with the scan tool. What does the fan do?',br:[
+ ['Runs slowly',{end:'Do a ground-side voltage drop: red on C1-2, black on battery −, fan running. Over 0.2 V means the ground (G1) has high resistance.',tp:['c1n','g1','body'],loc:'fan'}],
+ ['Runs full speed',{end:'Fan circuit works. If the engine still overheats, check the coolant temp signal and the fan command logic.'}],
+ ['Doesn\'t run',{q:'12 V at fan C1 cavity 1 (fan commanded ON)?',tp:['c1p'],loc:'fan',br:[
+   ['Yes',{q:'Is C1 cavity 2 grounded (under 0.2 V to battery −) with the fan commanded?',tp:['c1n'],loc:'fan',br:[
+     ['Yes',{end:'Power and ground are both good at the fan, so the motor is open. Confirm: 0 A on the amp clamp, or O.L ohms across the motor (unplugged, key off).'}],
+     ['No',{end:'Bad ground. Check across the G1 eyelet to body metal, then clean and repair.',tp:['g1','body'],loc:'ground'}]]}],
+   ['No',{q:'Does the relay click when the fan is commanded ON?',br:[
+     ['Yes, it clicks',{q:'12 V at relay 87 (relay on the test adapter, fan commanded)?',tp:['r87'],loc:'fusebox',br:[
+       ['Yes',{end:'Power leaves the relay but never reaches the fan, so the BLU wire between 87 and C1-1 is open. Confirm with ohms (key off, relay pulled).'}],
+       ['No',{q:'12 V at relay 30?',tp:['r30'],loc:'fusebox',br:[
+         ['Yes',{end:'Power in at 30, nothing out at 87 even though it clicks: the relay contacts aren\'t closing. Bench test the relay.'}],
+         ['No',{end:'No supply to the relay. Check both test points on F12: power on one side only means the fuse is open.',tp:['f12a','f12b'],loc:'fusebox'}]]}]]}],
+     ['No click',{q:'12 V at relay 86 with the key ON?',tp:['r86'],loc:'fusebox',br:[
+       ['No',{end:'No ignition feed to the relay coil. Check F5 and the ignition circuit.',tp:['f5a','f5b'],loc:'fusebox'}],
+       ['Yes',{q:'What does relay 85 read with the fan commanded ON?',tp:['r85'],loc:'fusebox',br:[
+         ['About 0 V',{end:'86 has power but none comes through the coil to 85: the relay coil is open. Bench test (O.L across 85–86).'}],
+         ['About 12 V',{q:'Now check ECM connector C3 pin 45 (GRN/YEL). What does it read?',tp:['ecm45'],loc:'ecm',br:[
+           ['About 0 V',{end:'12 V at one end of the GRN/YEL wire and 0 V at the other: that wire is open between relay 85 and ECM pin 45.'}],
+           ['About 12 V',{end:'The wire is good but the ECM isn\'t pulling it to ground: check the ECM command and driver (and its powers and grounds) before condemning it.'}]]}]]}]]}]]}]]}]]};
+function fcGo(loc){closeModal();go(loc);setActive('red');document.getElementById('view').scrollIntoView({behavior:'smooth'});}
+
 /* ===== GUIDED FLOW ===== */
 let guideOpen=true;
 function renderGuide(){
@@ -614,7 +665,7 @@ function renderGuide(){
   const n=cur<0?GUIDE.length:cur;
   let h='<button class="gHead" onclick="guideOpen=!guideOpen;renderGuide()">Diagnostic steps <span>'+n+'/'+GUIDE.length+' done '+(guideOpen?'▾':'▸')+'</span></button>';
   if(guideOpen){
-    h+='<div class="gBody">'+GUIDE.map((g,i)=>{const st=g.done()?'done':i===cur?'cur':'';
+    h+='<div class="gBody"><div class="gBtns" style="margin:0 0 6px"><button class="alt" onclick="openFlow()">📋 Open the diagnostic flow chart</button></div>'+GUIDE.map((g,i)=>{const st=g.done()?'done':i===cur?'cur':'';
       return '<div class="gStep '+st+'"><div class="gNum">'+(g.done()?'✓':i+1)+'</div><div><b>'+g.t+'</b>'+(i===cur?'<p>'+g.d+'</p><div class="gBtns"><button onclick="GUIDE['+i+'].go()">'+g.btn+'</button></div>':'')+'</div></div>';}).join('');
     if(cur<0)h+='<p style="margin:8px 0 0;color:#7dfc9a;font-size:14px">All steps done. Tap <b>Close job</b> to see your score.</p>';
     const hs=HINTS[job.orig]||[];
