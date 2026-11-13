@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check Engine: Cooling Fan Circuit Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#121417;--panel:#1c1f23;--panel2:#24282d;--line:#33383f;--text:#e9ebee;--muted:#9aa1ab;--yellow:#f5c518;--green:#7dfc9a;--red:#ff5a4e}
+*{box-sizing:border-box}
+html,body{margin:0;background:radial-gradient(ellipse at top,#1d2228,#0e1012 60%);background-attachment:fixed;color:var(--text);font-family:Barlow,system-ui,sans-serif;font-size:16px}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:760px;margin:0 auto;padding:10px 10px 150px}
+h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em}
+.hazard{height:6px;background:repeating-linear-gradient(-45deg,var(--yellow) 0 12px,#111 12px 24px);border-radius:3px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin:10px 0;gap:8px}
+.brand{font-family:"Barlow Condensed";font-weight:700;font-size:22px;text-transform:uppercase;line-height:.95}
+.brand span{color:var(--yellow)}
+.stats{display:flex;gap:6px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px;text-align:center;min-width:54px}
+.stat b{display:block;font-family:"JetBrains Mono";font-size:14px}
+.stat small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
+.ticket{border-left:5px solid var(--yellow)}
+.veh{font-family:"Barlow Condensed";font-size:21px;font-weight:700}
+.meta{color:var(--muted);font-size:13px}
+.complaint{font-style:italic;margin-top:4px}
+.tip{background:#1e2a22;border:1px solid #2f5a3d;border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45;color:#cfe9d6;margin:8px 0}
+.tip b{color:#fff}
+.tip button{background:none;border:0;color:var(--green);font-weight:600;padding:0;margin-top:4px}
+
+.diagram{background:#0d1013;border:1px solid var(--line);border-radius:12px;padding:6px;position:relative}
+.diagram svg{width:100%;display:block}
+.leadbar{display:flex;gap:6px;margin-bottom:6px}
+.lead{flex:1;border-radius:9px;padding:9px 6px;font-weight:700;font-size:14px;border:2px solid transparent;background:var(--panel2);color:var(--text)}
+.lead.red.on{border-color:#ff4a3d;background:#3a1714}
+.lead.blk.on{border-color:#d9dde2;background:#2c3036}
+.lead .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.tp{cursor:pointer}
+.tp circle.hit{fill:transparent}
+.tp circle.ring{fill:#0d1013;stroke:#f5c518;stroke-width:2}
+.tp:hover circle.ring{fill:#3b3210}
+.tpl{font:600 8.5px "JetBrains Mono";fill:#cfd3d8;pointer-events:none}
+.wire{fill:none;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.cmp{fill:#1a1e23;stroke:#8c949d;stroke-width:1.6}
+.cl{font:700 10px "JetBrains Mono";fill:#e9ebee}
+.cs{font:500 8px "JetBrains Mono";fill:#9aa1ab}
+#fanRotor{transform-box:fill-box;transform-origin:center}
+.spinFast{animation:spin .18s linear infinite}
+.spinSlow{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.clickfx{opacity:0}
+.clickfx.show{animation:pop .5s ease-out}
+@keyframes pop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-12px)}}
+.chips{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;pointer-events:none}
+.chip{font:700 10px "JetBrains Mono";padding:3px 7px;border-radius:6px;background:#2a2e33;color:#9aa1ab;border:1px solid #3a3f46}
+.chip.on{background:#3a3010;color:var(--yellow);border-color:#7a6410}
+.chip.go{background:#173322;color:var(--green);border-color:#2f6b45}
+
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.act{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 4px;font-size:13px;font-weight:600;line-height:1.2}
+.act small{display:block;font-family:"JetBrains Mono";color:var(--yellow);font-size:10.5px;font-weight:500;margin-top:2px}
+.act.on{background:var(--yellow);color:#111}.act.on small{color:#111}
+.act.primary{background:var(--yellow);color:#111;border-color:var(--yellow)}
+.act:disabled{opacity:.4}
+
+.log{background:#0b0e0c;border:2px solid #2c3a30;border-radius:10px;padding:8px 10px;font-family:"JetBrains Mono";font-size:12px;color:var(--green);max-height:220px;overflow:auto}
+.log div{padding:4px 0;border-bottom:1px dashed #22302a}.log div:last-child{border:0}
+.log .h{color:var(--yellow)}
+.log .empty{color:#4f6b58;border:0}
+
+/* DMM dock */
+.dmm{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 10px 12px;background:linear-gradient(transparent,rgba(0,0,0,.6) 30%)}
+.dmmIn{max-width:760px;margin:0 auto;background:linear-gradient(#f2c300,#d4a600);border:2px solid #8a6d00;border-radius:16px;padding:8px 10px;display:flex;gap:10px;align-items:center;color:#111;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.lcd{flex:1;background:#c9d3b6;border:3px solid #2b2b2b;border-radius:8px;padding:4px 10px;font-family:"JetBrains Mono";color:#18210d;min-width:0}
+.lcd .val{font-size:30px;font-weight:700;line-height:1.1;text-align:right;white-space:nowrap}
+.lcd .sub{font-size:10px;display:flex;justify-content:space-between;gap:6px;white-space:nowrap;overflow:hidden}
+.modes{display:flex;flex-direction:column;gap:4px}
+.mode{background:#2b2b2b;color:#f2c300;border:0;border-radius:7px;padding:7px 9px;font:700 12px "JetBrains Mono"}
+.mode.on{background:#111;color:#fff;outline:2px solid #fff}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;display:flex;align-items:flex-end;justify-content:center;padding:10px}
+.modal{width:100%;max-width:520px;max-height:88vh;overflow:auto;border-radius:16px;padding:14px;background:var(--panel);border:1px solid var(--line);animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.modal h3{font-size:22px;text-transform:uppercase}
+.modal p{color:var(--muted);font-size:14px;margin:4px 0 10px;line-height:1.45}
+.scan{background:linear-gradient(#2f3a46,#1d242c);border:2px solid #4a5867}
+.scr{background:#0b1a10;border:3px solid #000;border-radius:8px;padding:10px;font-family:"JetBrains Mono";color:var(--green);font-size:13px;line-height:1.6;margin:8px 0}
+.scr .row{display:flex;justify-content:space-between;border-bottom:1px dashed #1d3a27}
+.code{display:inline-block;background:#173322;border:1px solid #2f6b45;border-radius:4px;padding:0 6px;margin-right:6px;color:#b6ffca;font-weight:700}
+.mbtn{display:flex;justify-content:space-between;align-items:center;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:13px 14px;font-size:15px;margin-top:8px;text-align:left}
+.mbtn small{font-family:"JetBrains Mono";color:var(--yellow);font-size:11px}
+.mbtn.big{justify-content:center;background:var(--yellow);color:#111;font-weight:700;font-family:"Barlow Condensed";font-size:20px;text-transform:uppercase;border:0}
+.ghost{width:100%;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;margin-top:10px}
+.verdict{font-family:"Barlow Condensed";font-size:30px;font-weight:700;text-transform:uppercase}
+.verdict.ok{color:var(--green)}.verdict.no{color:var(--red)}
+.stars{font-size:26px;letter-spacing:4px;color:var(--yellow)}
+.res{font-size:14px;line-height:1.55;color:#d5d9de}
+.res td{padding:3px 0}
+.hidden{display:none!important}
+.back{display:inline-block;color:#f5c518;text-decoration:none;font:600 13px 'JetBrains Mono',monospace;margin:8px 0 0}
+.wrap{padding-bottom:170px}
+.probes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.pbtn{display:flex;gap:8px;align-items:center;text-align:left;background:var(--panel2);border:2px solid transparent;border-radius:10px;padding:8px;color:var(--text);min-width:0}
+.pbtn b{display:block;font-size:14px}
+.pbtn small{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.pbtn span:last-child{min-width:0}
+.pbtn.red.on{border-color:#ff4a3d;background:#3a1714}
+.pbtn.blk.on{border-color:#d9dde2;background:#2c3036}
+.lead{flex:none;width:12px;height:34px;border-radius:5px;border:1px solid #000}
+.lead.r{background:linear-gradient(#e0392c,#7d1913)}.lead.b{background:linear-gradient(#3a3a3a,#0d0d0d)}
+.chips2{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.locTabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.locTabs::-webkit-scrollbar{display:none}
+.loc{flex:none;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:20px;padding:8px 13px;font-size:13px;font-weight:600}
+.loc.on{background:var(--yellow);color:#111;border-color:var(--yellow)}
+.viewWrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:6px}
+.vh b{display:block;font-family:"Barlow Condensed";font-size:20px;text-transform:uppercase}
+.vh span{display:block;color:var(--muted);font-size:13px;margin-bottom:6px;line-height:1.4}
+.vbox{border-radius:10px;overflow:hidden;border:1px solid #23272c}
+.vbox svg{width:100%;display:block}
+.tl{font:600 9px "JetBrains Mono";fill:#cfd3d8;pointer-events:none}
+.tp{cursor:pointer}
+.vbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.vbtns button{flex:1;min-width:110px;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px 6px;font-size:13px;font-weight:600}
+.vnote{margin-top:8px;font-size:13px;color:#cfd3d8;line-height:1.45;background:#111418;border-radius:8px;padding:8px 10px}
+.spinF{animation:spin .16s linear infinite}.spinS{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dmm{cursor:pointer}
+.dmmIn{gap:10px}
+.dmmIn.off .lcd{background:#8e977f}
+.lcd .val{font-size:32px}
+.lcd .u{font-size:18px}
+.lcd .warn{font:600 10.5px "JetBrains Mono";color:#7a1a10;min-height:13px;white-space:normal;line-height:1.25}
+.beepI{opacity:.15;font-weight:700}.beepI.on{opacity:1}
+.knob{width:58px;height:58px;border-radius:50%;background:radial-gradient(#4a4a4a,#1a1a1a);color:#f5c518;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;border:3px solid #111;flex:none}
+.knob small{font:700 8px "JetBrains Mono";color:#ccc}
+.meterBig{max-width:280px;margin:0 auto}
+.meterBig svg{width:100%;display:block}
+.dpos{cursor:pointer}
+.log .dim{color:#4f6b58}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hazard"></div>
+  <a class="back" href="index.html">← Garage</a>
+  <div class="topbar">
+    <div class="brand">Fan Circuit<br><span>Lab</span></div>
+    <div class="stats">
+      <div class="stat"><b id="sTime">0</b><small>Minutes</small></div>
+      <div class="stat"><b id="sParts">$0</b><small>Parts</small></div>
+      <div class="stat"><b id="sJobs">0</b><small>Fixed</small></div>
+    </div>
+  </div>
+  <div class="card ticket">
+    <div class="meta" id="tNum"></div>
+    <div class="veh" id="tVeh"></div>
+    <div class="complaint" id="tComplaint"></div>
+    <div class="meta" style="margin-top:6px">ASE: A6 Electrical · A7 HVAC/Engine Cooling</div>
+  </div>
+
+  <div class="tip" id="tip">
+    <b>Work it like a real car.</b> Check the <b>Wiring diagram</b> tab to see where to test, then go to that location and back-probe. Pick the <b>red</b> or <b>black probe</b> below, then tap a terminal. Tap the meter at the bottom to turn the dial (V⎓, Ω, continuity, A) or move the red lead between jacks. Use the scan tool to command the fan.<br>
+    <button onclick="document.getElementById('tip').classList.add('hidden')">Got it ✕</button>
+  </div>
+
+  <div class="probes">
+    <button class="pbtn red" id="P_red" onclick="setActive('red')"><span class="lead r"></span><span><b>Red probe</b><small id="P_redLoc"></small></span></button>
+    <button class="pbtn blk" id="P_blk" onclick="setActive('blk')"><span class="lead b"></span><span><b>Black probe</b><small id="P_blkLoc"></small></span></button>
+  </div>
+
+  <div class="chips2"><div class="chip" id="chipKey"></div><div class="chip" id="chipCmd"></div><div class="chip" id="chipFan"></div></div>
+  <div class="locTabs" id="locTabs"></div>
+  <div class="viewWrap" id="view"></div>
+
+  <div class="actions">
+    <button class="act" id="bKey" onclick="toggleKey()">Key ON</button>
+    <button class="act" onclick="openScan()">Scan tool<small>bidirectional</small></button>
+    <button class="act" onclick="openMeter()">Meter dial<small>V · Ω · A</small></button>
+    <button class="act" onclick="openTests()">Other checks<small>bench / inspect</small></button>
+    <button class="act" onclick="openRepair()">Repair<small>10 min + parts</small></button>
+    <button class="act primary" onclick="closeJob()">Close job<small>verify first!</small></button>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:18px;margin-bottom:6px">Tech notes</h3>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<div class="dmm" onclick="openMeter()">
+  <div class="dmmIn" id="dmmMini">
+    <div class="lcd">
+      <div class="sub"><span id="lcdFn">DC VOLTS</span><span id="lcdBeep" class="beepI">•)))</span><span id="jackTxt"></span></div>
+      <div class="val"><span id="lcdVal">0.00</span> <span id="lcdUnit" class="u">V</span></div>
+      <div class="warn" id="lcdWarn"></div>
+    </div>
+    <div class="knob" title="Turn dial">⟳<small>DIAL</small></div>
+  </div>
+</div>
+<div id="modalBg" class="modal-bg hidden" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
+
+<script>
+function career(fixed,stars){try{const c=JSON.parse(localStorage.getItem('ce_career')||'{}');c.jobs=(c.jobs||0)+1;c.fixed=(c.fixed||0)+(fixed?1:0);c.stars=(c.stars||0)+stars;localStorage.setItem('ce_career',JSON.stringify(c));}catch(e){}}
+const $=id=>document.getElementById(id);
+
+/* ===================== TEST POINTS (real-world locations) ===================== */
+const TPN={
+ bat_p:'Battery + post',bat_n:'Battery − post',
+ f11a:'F11 test point A',f11b:'F11 test point B',f12a:'F12 test point A',f12b:'F12 test point B',f5a:'F5 test point A',f5b:'F5 test point B',
+ r30:'Relay terminal 30',r87:'Relay terminal 87',r85:'Relay terminal 85',r86:'Relay terminal 86',
+ c1p:'Fan C1 cavity 1 (BLU)',c1n:'Fan C1 cavity 2 (BLK)',
+ g1:'G1 ground eyelet',body:'Body sheet metal',
+ e44:'ECM C3 pin 44',ecm45:'ECM C3 pin 45',e46:'ECM C3 pin 46',e47:'ECM C3 pin 47'
+};
+const LOCS=[['battery','Battery'],['fusebox','Fuse/relay box'],['fan','Fan motor'],['ground','Ground G1'],['ecm','ECM'],['diagram','Wiring diagram']];
+
+/* ===================== FAULTS ===================== */
+const FAULTS={
+ fuse:{complaint:'"Overheats sitting in traffic. The fan never comes on."',repair:'fuse',why:'F12 was blown. One test point had battery voltage and the other had 0 V, so power never reached relay 30. Pulling it would also have shown the broken element. On a real car, find out why it blew before you close the job.'},
+ contacts:{complaint:'"Overheats in traffic. The fan never kicks on."',repair:'relay',why:'Burnt relay contacts. With the fan commanded, the relay clicked and 30 had 12 V, but 87 stayed at 0 V. A fused jumper from 30 to 87 ran the fan, and the bench test showed the contacts open (OL) with a good coil.'},
+ coil:{complaint:'"Temp gauge climbs at red lights. Fan doesn\'t come on."',repair:'relay',why:'Open relay coil. Terminal 86 had 12 V, but 85 read 0 V with the command off, because no voltage was getting through the coil. Ohms across 85–86 on the bench read OL. Jumpering 30–87 ran the fan, and P0480 was set.'},
+ ctrl:{complaint:'"Overheats in traffic. The fan never runs."',repair:'ctrl',why:'Open GRN/YEL control wire. Relay 85 stayed at 12 V even when commanded ON, while ECM C3 pin 45 read 0 V. An ohms check from 85 to pin 45 (key off) read OL. P0480 was set.'},
+ wire:{complaint:'"Overheats in traffic. Fan doesn\'t seem to work."',repair:'wire',why:'Open BLU feed wire. Relay 87 had 12 V when commanded, but fan C1 cavity 1 read 0 V. With the key off, ohms from relay socket 87 to C1 cavity 1 read OL.'},
+ ground:{complaint:'"Runs hot in traffic. The fan seems weak."',repair:'ground',why:'Corroded G1 ground. With the fan running, the voltage drop from C1 cavity 2 to battery negative was about 6 V (spec is under 0.2 V), and current was only about 6 A. A static ohms check across G1 shows about 1 Ω, which is easy to dismiss. Voltage drop under load is the test that proves it.'},
+ motor:{complaint:'"Overheats in traffic. Fan is dead."',repair:'motor',why:'Open fan motor. C1 cavity 1 had 12 V and cavity 2 had a good ground, but 0 A flowed. Ohms across the motor (unplugged, key off) read OL.'},
+};
+const REPAIRS=[{id:'fuse',name:'Replace fuse F12',cost:5},{id:'relay',name:'Replace fan relay',cost:35},{id:'wire',name:'Repair BLU wire (relay 87 → fan C1-1)',cost:8},{id:'ctrl',name:'Repair GRN/YEL wire (relay 85 → ECM 45)',cost:8},{id:'ground',name:'Clean & repair ground G1',cost:4},{id:'motor',name:'Replace fan motor',cost:180},{id:'ecm',name:'Replace ECM',cost:450}];
+const VEHICLES=['2007 Nissan Altima','2010 Toyota Corolla','2012 Chevy Malibu','2009 Honda Civic','2014 Ford Focus','2011 Hyundai Elantra'];
+const NAMES=['Tony','Maria','Dev','Keisha','Frank','Lena','Omar'];
+
+/* ===================== STATE ===================== */
+let job,S,M,fixedCount=0,loc='fusebox',active='red';
+function newJob(){
+  const ks=Object.keys(FAULTS),f=ks[Math.floor(Math.random()*ks.length)];
+  job={fault:f,orig:f,veh:VEHICLES[Math.floor(Math.random()*VEHICLES.length)],name:NAMES[Math.floor(Math.random()*NAMES.length)],time:0,parts:0,reads:0,repairs:[],scanned:false,seen:{}};
+  S={key:false,cmd:false,fuseIn:true,relay:'in',jumper:false,fanPlug:true};
+  M={dial:'VDC',red:'V',meterFuse:true,leads:{red:null,blk:'bat_n'},clamp:false};
+  loc='fusebox';active='red';
+  $('tNum').textContent='WORK ORDER #'+(5200+Math.floor(Math.random()*700))+' · '+job.name;
+  $('tVeh').textContent=job.veh;$('tComplaint').textContent=FAULTS[f].complaint;
+  $('log').innerHTML='<div class="empty">&gt; Readings and results show up here.</div>';
+  render();
+}
+
+/* ===================== CIRCUIT ===================== */
+function ammeterBridgesFuse(){const l=M.leads;return M.dial==='A'&&M.red==='A'&&M.meterFuse&&!S.fuseIn&&((l.red==='f12a'&&l.blk==='f12b')||(l.red==='f12b'&&l.blk==='f12a'));}
+function solve(){
+  const f=job.fault,V=12.4,k=S.key,cmd=k&&S.cmd;
+  const relayHere=S.relay!=='out';
+  const energized=relayHere&&cmd&&f!=='coil'&&f!=='ctrl';
+  const closed=(relayHere&&energized&&f!=='contacts')||(S.relay==='out'&&S.jumper);
+  const fuseCond=(S.fuseIn&&f!=='fuse')||ammeterBridgesFuse();
+  const load=closed&&fuseCond&&f!=='wire'&&f!=='motor'&&S.fanPlug;
+  const I=load?(f==='ground'?6.1:11.8):0;
+  const v={bat_p:V,bat_n:0,body:0,f11a:V,f11b:V};
+  v.f12a=V-(I?.02:0);
+  v.f12b=fuseCond?V-(I?.06:0):0;
+  v.r30=v.f12b-(I&&fuseCond?.02:0);
+  v.f5a=k?V:0;v.f5b=v.f5a;v.r86=v.f5b;
+  if(!k||f==='coil'||!relayHere)v.r85=0;else if(energized)v.r85=.18;else v.r85=V;
+  v.ecm45=f==='ctrl'?0:(relayHere?v.r85:0);
+  v.r87=closed?(fuseCond?v.r30-(I?.05:0):0):0;
+  if(closed&&f!=='wire'&&fuseCond&&S.fanPlug){
+    if(load){v.c1p=v.r87-I*.009;if(f==='ground'){v.c1n=6.05;v.g1=5.98;}else{v.c1n=.09;v.g1=.06;}}
+    else{v.c1p=v.r87;v.c1n=0;v.g1=0;}
+  }else if(closed&&f!=='wire'&&fuseCond&&!S.fanPlug){v.c1p=v.r87;v.c1n=0;v.g1=0;}
+  else{v.c1p=0;v.c1n=0;v.g1=0;}
+  v.e44=k?.62:0;v.e46=.01;v.e47=k?5.0:0;
+  return {v,I,energized,closed,fan:load?(f==='ground'?'slow':'fast'):'off'};
+}
+/* resistance graph (only meaningful with key off / circuit dead) */
+function edges(){
+  const f=job.fault,E=[];const add=(a,b,r)=>E.push([a,b,r]);
+  add('bat_n','body',.01);add('body','g1',f==='ground'?1.1:.02);add('g1','c1n',.05);
+  if(S.fanPlug&&f!=='motor')add('c1n','c1p',.9);
+  if(f!=='wire')add('c1p','r87',.12);
+  add('f12b','r30',.05);
+  if(S.fuseIn&&f!=='fuse')add('f12a','f12b',.01);
+  add('bat_p','f12a',.01);add('bat_p','f11a',.01);add('f11a','f11b',.01);
+  add('f5b','r86',.05);add('f5a','f5b',.01);
+  if(S.relay!=='out'&&f!=='coil')add('r86','r85',74);
+  if(S.relay==='out'&&S.jumper)add('r30','r87',.03);
+  if(f!=='ctrl')add('r85','ecm45',.1);
+  add('e46','body',.02);
+  return E;
+}
+function resistance(a,b){
+  if(a===b)return 0;
+  const E=edges(),dist={},seen={};dist[a]=0;
+  while(true){let u=null,d=1e9;for(const n in dist)if(!seen[n]&&dist[n]<d){d=dist[n];u=n;}if(u===null)break;seen[u]=1;if(u===b)return d;
+    for(const [x,y,r] of E){let w=null;if(x===u)w=y;else if(y===u)w=x;if(w&&!seen[w]&&(dist[w]===undefined||dist[w]>d+r))dist[w]=d+r;}}
+  return Infinity;
+}
+/* ===================== METER ===================== */
+function reading(){
+  const s=solve(),l=M.leads;
+  if(M.dial==='OFF')return {txt:'',unit:''};
+  if(M.clamp&&M.dial==='A')return {txt:(s.I?(s.I+(Math.random()-.5)*.1).toFixed(1):'0.0'),unit:'A',note:'clamp'};
+  if(!l.red||!l.blk)return {txt:M.dial==='OHM'||M.dial==='CONT'?'O.L':'0.00',unit:unitOf()};
+  const dv=s.v[l.red]-s.v[l.blk];
+  if(M.dial==='VDC'){if(M.red==='A'){if(Math.abs(dv)>1)blowMeterFuse();return {txt:'0.00',unit:'V',note:'jackV'};}return {txt:fmt(dv+(Math.random()-.5)*.01),unit:'V'};}
+  if(M.dial==='VAC')return {txt:(Math.abs(dv)>1?.02:0).toFixed(2),unit:'V~'};
+  if(M.dial==='OHM'||M.dial==='CONT'){
+    if(M.red==='A')return {txt:'O.L',unit:'Ω'};
+    if(Math.abs(dv)>.3||(S.key&&liveBetween(l.red,l.blk)))return {txt:'-'+(Math.random()*9).toFixed(1),unit:'Ω',note:'live'};
+    const r=resistance(l.red,l.blk);
+    if(M.dial==='CONT'){if(r<5)beepCont();return {txt:r===Infinity?'O.L':r.toFixed(1),unit:'Ω',note:r<5?'beep':''};}
+    return {txt:r===Infinity?'O.L':(r<200?r.toFixed(1):Math.round(r)),unit:'Ω'};
+  }
+  if(M.dial==='A'){
+    if(M.red!=='A')return {txt:'0.00',unit:'A',note:'jack'};
+    if(!M.meterFuse)return {txt:'0.00',unit:'A',note:'fuse'};
+    if(ammeterBridgesFuse())return {txt:(s.I+(Math.random()-.5)*.1).toFixed(2),unit:'A'};
+    if(Math.abs(dv)>1){blowMeterFuse();return {txt:'0.00',unit:'A'};}
+    return {txt:'0.00',unit:'A'};
+  }
+}
+function liveBetween(a,b){const s=solve();return s.v[a]>1||s.v[b]>1;}
+function unitOf(){return {VDC:'V',VAC:'V~',OHM:'Ω',CONT:'Ω',A:'A',OFF:''}[M.dial];}
+function fmt(x){return (x<0?'−':'')+Math.abs(x).toFixed(2);}
+let fuseMsgShown=false;
+function blowMeterFuse(){if(!M.meterFuse)return;M.meterFuse=false;addLog('POP! You put the meter across a voltage source while it was set up for current. The meter\'s internal 10 A fuse blew. Ammeters go in <b>series</b>, never across a voltage source.','METER:');setTimeout(render,10);}
+
+/* ===================== RENDER ===================== */
+function render(){
+  const s=solve();
+  $('locTabs').innerHTML=LOCS.map(([k,n])=>'<button class="loc'+(loc===k?' on':'')+'" onclick="go(\''+k+'\')">'+n+'</button>').join('');
+  $('view').innerHTML=VIEWS[loc](s);
+  $('chipKey').textContent=S.key?'KEY ON':'KEY OFF';$('chipKey').className='chip'+(S.key?' go':'');
+  $('chipCmd').textContent='FAN CMD '+(S.key&&S.cmd?'ON':'OFF');$('chipCmd').className='chip'+(S.key&&S.cmd?' on':'');
+  $('chipFan').textContent='FAN '+(s.fan==='fast'?'RUNNING':s.fan==='slow'?'SLOW':'STOPPED');$('chipFan').className='chip'+(s.fan==='fast'?' go':s.fan==='slow'?' on':'');
+  $('bKey').innerHTML=(S.key?'Key OFF':'Key ON')+'<small>free</small>';
+  ['red','blk'].forEach(c=>$('P_'+c).classList.toggle('on',active===c));
+  $('P_redLoc').textContent=M.leads.red?TPN[M.leads.red]:'not connected';
+  $('P_blkLoc').textContent=M.leads.blk?TPN[M.leads.blk]:'not connected';
+  $('sTime').textContent=job.time;$('sParts').textContent='$'+job.parts;$('sJobs').textContent=fixedCount;
+  drawLcd();
+  fanSound(s);
+}
+function drawLcd(){
+  const r=reading();
+  $('lcdVal').textContent=r.txt;
+  $('lcdUnit').textContent=r.unit;
+  $('lcdFn').textContent={VDC:'DC VOLTS',VAC:'AC VOLTS',OHM:'OHMS',CONT:'CONTINUITY',A:M.clamp?'AMPS · CLAMP':'DC AMPS',OFF:'OFF'}[M.dial];
+  let warn='';
+  if(r.note==='live')warn='Circuit is live. Ohms readings are invalid.';
+  else if(r.note==='jack')warn='Move the red lead to the 10A jack to measure current.';
+  else if(r.note==='fuse')warn='Meter 10A fuse blown.';
+  else if(r.note==='jackV')warn='Red lead is in the 10A jack. Move it to VΩ to measure volts.';
+  else if(M.dial==='A'&&!M.clamp&&!r.note&&M.leads.red)warn='Ammeter must be in series (e.g. across a pulled fuse\'s socket).';
+  else if(M.dial==='OHM'&&S.key)warn='Turn the key off for resistance checks.';
+  $('lcdWarn').textContent=warn;
+  $('lcdBeep').classList.toggle('on',r.note==='beep');
+  $('dmmMini').classList.toggle('off',M.dial==='OFF');
+  $('jackTxt').textContent='Red lead: '+(M.red==='A'?'10A jack':'VΩ jack')+(M.meterFuse?'':' · meter fuse BLOWN');
+}
+setInterval(()=>{if(job)drawLcd();},500);
+
+/* --------- shared bits for views --------- */
+function tpSvg(id,x,y,lbl,opt={}){
+  const l=M.leads,isR=l.red===id,isB=l.blk===id;
+  let probe='';
+  if(isR||isB){const both=isR&&isB;
+    if(isB)probe+='<g><line x1="'+x+'" y1="'+y+'" x2="'+(x-14)+'" y2="'+(y-34)+'" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round"/><line x1="'+x+'" y1="'+y+'" x2="'+(x-6)+'" y2="'+(y-12)+'" stroke="#d9dde2" stroke-width="2"/><rect x="'+(x-20)+'" y="'+(y-50)+'" width="11" height="20" rx="4" fill="#1a1a1a" stroke="#555"/></g>';
+    if(isR)probe+='<g><line x1="'+x+'" y1="'+y+'" x2="'+(x+14)+'" y2="'+(y-34)+'" stroke="#c0271d" stroke-width="5" stroke-linecap="round"/><line x1="'+x+'" y1="'+y+'" x2="'+(x+6)+'" y2="'+(y-12)+'" stroke="#d9dde2" stroke-width="2"/><rect x="'+(x+9)+'" y="'+(y-50)+'" width="11" height="20" rx="4" fill="#c0271d" stroke="#5a0f0a"/></g>';}
+  return '<g class="tp" onclick="probe(\''+id+'\')"><circle cx="'+x+'" cy="'+y+'" r="15" fill="transparent"/><circle cx="'+x+'" cy="'+y+'" r="'+(opt.r||4.5)+'" fill="'+(opt.fill||'#c8ccd1')+'" stroke="#f5c518" stroke-width="1.5"/>'+(lbl?'<text x="'+(x+(opt.lx||0))+'" y="'+(y+(opt.ly||18))+'" text-anchor="middle" class="tl">'+lbl+'</text>':'')+'</g>'+probe;
+}
+const W='<svg viewBox="0 0 360 240" xmlns="http://www.w3.org/2000/svg">';
+const DEFS='<defs><linearGradient id="gMetal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b8bfc6"/><stop offset="1" stop-color="#5d646d"/></linearGradient><linearGradient id="gPl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f45"/><stop offset="1" stop-color="#17191c"/></linearGradient><pattern id="gGrid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#161b20"/></pattern></defs>';
+function wireSeg(x1,y1,x2,y2,c,stripe){return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+c+'" stroke-width="7" stroke-linecap="round"/>'+(stripe?'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+stripe+'" stroke-width="2" stroke-dasharray="6 6"/>':'');}
+function header(t,sub){return '<div class="vh"><b>'+t+'</b><span>'+sub+'</span></div>';}
+
+const VIEWS={
+ battery(){
+  return header('Battery','Top view. The black probe usually stays on the − post as your reference.')+
+  '<div class="vbox">'+W+DEFS+'<rect width="360" height="240" fill="#0c0e10"/>'+
+  '<rect x="60" y="60" width="240" height="140" rx="10" fill="url(#gPl)" stroke="#555"/><rect x="60" y="60" width="240" height="28" rx="8" fill="#2c3035"/>'+
+  '<rect x="120" y="120" width="120" height="34" rx="4" fill="#f5c518"/><text x="180" y="142" text-anchor="middle" style="font:700 13px \'JetBrains Mono\';fill:#111">12V · 650 CCA</text>'+
+  '<circle cx="100" cy="74" r="14" fill="url(#gMetal)"/><text x="100" y="52" text-anchor="middle" style="font:700 16px sans-serif;fill:#ff6b5e">+</text>'+
+  '<circle cx="260" cy="74" r="14" fill="url(#gMetal)"/><text x="260" y="52" text-anchor="middle" style="font:700 18px sans-serif;fill:#ddd">−</text>'+
+  wireSeg(100,74,20,40,'#b02a1e')+wireSeg(260,74,340,40,'#202020')+
+  tpSvg('bat_p',100,74,'',{r:6})+tpSvg('bat_n',260,74,'',{r:6})+'</svg></div>';
+ },
+ fusebox(s){
+  const relay=S.relay;
+  let r='';
+  // fuses
+  const fuse=(x,id,amp,col,blown)=>{
+    const out=id==='f12'&&!S.fuseIn;
+    let g='<g>';
+    if(out){g+='<rect x="'+(x-16)+'" y="70" width="32" height="44" rx="3" fill="#0b0c0e" stroke="#444"/><rect x="'+(x-10)+'" y="80" width="6" height="20" fill="#222"/><rect x="'+(x+4)+'" y="80" width="6" height="20" fill="#222"/>';}
+    else{g+='<rect x="'+(x-16)+'" y="62" width="32" height="44" rx="4" fill="'+col+'" opacity=".92"/><rect x="'+(x-16)+'" y="62" width="32" height="14" rx="3" fill="'+col+'"/><text x="'+x+'" y="96" text-anchor="middle" style="font:700 11px \'JetBrains Mono\';fill:#111">'+amp+'</text>';
+      g+='<path d="M'+(x-6)+' 84 h4 l2 -4 l2 4 h4" stroke="#333" stroke-width="1.4" fill="none"/>';}
+    g+='<text x="'+x+'" y="132" text-anchor="middle" class="tl">'+id.toUpperCase()+'</text></g>';
+    if(out)g+=tpSvg(id+'a',x-7,90,'',{r:3.5})+tpSvg(id+'b',x+7,90,'',{r:3.5});
+    else g+=tpSvg(id+'a',x-9,68,'',{r:3})+tpSvg(id+'b',x+9,68,'',{r:3});
+    return g;
+  };
+  r+=fuse(60,'f11','15','#3d8bff')+fuse(120,'f12','30','#2fbf5b')+fuse(180,'f5','10','#e23b2e');
+  // relay
+  const RX=280,RY=110;
+  if(relay==='in'){r+='<rect x="'+(RX-34)+'" y="'+(RY-44)+'" width="68" height="88" rx="6" fill="#1b1d20" stroke="#666"/><text x="'+RX+'" y="'+(RY-12)+'" text-anchor="middle" style="font:700 12px \'JetBrains Mono\';fill:#ddd">FAN</text><text x="'+RX+'" y="'+(RY+6)+'" text-anchor="middle" style="font:600 9px \'JetBrains Mono\';fill:#888">RELAY</text><text x="'+RX+'" y="'+(RY+64)+'" text-anchor="middle" class="tl">relay installed · pins hidden</text>';}
+  else{
+    const lab=relay==='adapter'?'test adapter':'empty socket';
+    r+='<rect x="'+(RX-40)+'" y="'+(RY-50)+'" width="80" height="100" rx="6" fill="'+(relay==='adapter'?'#2a2e33':'#0b0c0e')+'" stroke="#666"/>';
+    if(relay==='adapter')r+='<rect x="'+(RX-30)+'" y="'+(RY-48)+'" width="60" height="16" rx="3" fill="#1b1d20" stroke="#777"/><text x="'+RX+'" y="'+(RY-37)+'" text-anchor="middle" style="font:700 8px \'JetBrains Mono\';fill:#ddd">RELAY ON TOP</text>';
+    if(S.jumper&&relay==='out')r+='<line x1="'+(RX-24)+'" y1="'+(RY+8)+'" x2="'+(RX+24)+'" y2="'+(RY+8)+'" stroke="#f5c518" stroke-width="4"/><text x="'+RX+'" y="'+(RY+20)+'" text-anchor="middle" style="font:700 7px \'JetBrains Mono\';fill:#f5c518">JUMPER</text>';
+    r+='<text x="'+RX+'" y="'+(RY+66)+'" text-anchor="middle" class="tl">'+lab+'</text>';
+    r+=tpSvg('r86',RX,RY-20,'86',{ly:4,lx:16})
+     +tpSvg('r30',RX-24,RY+8,'30',{ly:4,lx:-15})
+     +tpSvg('r87',RX+24,RY+8,'87',{ly:4,lx:15})
+     +tpSvg('r85',RX,RY+34,'85',{ly:4,lx:16});
+  }
+  return header('Underhood fuse & relay box','Fuses have two test points on top. Pull the relay, or install a test adapter, to reach its terminals.')+
+   '<div class="vbox">'+W+DEFS+'<rect width="360" height="240" fill="#0c0e10"/><rect x="14" y="40" width="332" height="180" rx="12" fill="#18191b" stroke="#333"/>'+r+'</svg></div>'+
+   '<div class="vbtns"><button onclick="toggleFuse()">'+(S.fuseIn?'Pull F12':'Reinstall F12')+'</button>'+
+   '<button onclick="cycleRelay()">Relay: '+({in:'installed',adapter:'test adapter',out:'pulled'})[relay]+' ▸</button>'+
+   (relay==='out'?'<button onclick="toggleJumper()">'+(S.jumper?'Remove jumper':'Jumper 30→87')+'</button>':'')+'</div>'+
+   (!S.fuseIn?'<div class="vnote">F12 pulled: '+(job.fault==='fuse'?'element is <b>broken</b>. The fuse is blown.':'element looks intact.')+' With F12 pulled, an ammeter across its two cavities measures fan circuit current.</div>':'');
+ },
+ fan(s){
+  const spin=s.fan==='fast'?'spinF':s.fan==='slow'?'spinS':'';
+  return header('Radiator fan motor','Connector C1 is plugged into the fan. Back-probe from the wire side.')+
+  '<div class="vbox">'+W+DEFS+'<rect width="360" height="240" fill="#0c0e10"/>'+
+  '<circle cx="120" cy="120" r="92" fill="#15181b" stroke="#3a3f46" stroke-width="5"/>'+
+  '<g class="'+spin+'" style="transform-box:fill-box;transform-origin:center">'+[0,72,144,216,288].map(a=>'<path transform="rotate('+a+' 120 120)" d="M120 120 C 104 84, 112 50, 136 44 C 138 74, 132 100, 120 120Z" fill="#555c65"/>').join('')+'</g>'+
+  '<circle cx="120" cy="120" r="24" fill="#2a2e33" stroke="#666"/>'+
+  // connector
+  '<rect x="230" y="96" width="56" height="48" rx="6" fill="#1b1d20" stroke="#888"/><rect x="226" y="104" width="6" height="32" fill="#444"/>'+
+  wireSeg(286,110,348,90,'#3d8bff')+wireSeg(286,130,348,150,'#2a2a2a')+
+  '<text x="258" y="90" text-anchor="middle" class="tl">C1</text>'+
+  tpSvg('c1p',290,110,'1 BLU',{ly:-10,lx:20})+tpSvg('c1n',290,130,'2 BLK',{ly:22,lx:20})+
+  (S.fanPlug?'':'<text x="258" y="170" text-anchor="middle" style="font:700 10px \'JetBrains Mono\';fill:#f5c518">UNPLUGGED</text>')+
+  '</svg></div><div class="vbtns"><button onclick="toggleFanPlug()">'+(S.fanPlug?'Unplug C1':'Plug in C1')+'</button></div>';
+ },
+ ground(){
+  return header('Fan ground G1','Bolted to the radiator support. Compare the eyelet to bare body metal.')+
+  '<div class="vbox">'+W+DEFS+'<rect width="360" height="240" fill="#0c0e10"/>'+
+  '<rect x="20" y="40" width="320" height="170" rx="6" fill="#2a1414"/><rect x="20" y="40" width="320" height="170" rx="6" fill="#7a1717" opacity=".55"/>'+
+  wireSeg(20,130,150,130,'#2a2a2a')+
+  '<circle cx="180" cy="130" r="26" fill="url(#gMetal)" stroke="#333"/><circle cx="180" cy="130" r="12" fill="#666" stroke="#222"/><path d="M174 130 h12 M180 124 v12" stroke="#333" stroke-width="2"/>'+
+  '<rect x="250" y="160" width="40" height="22" rx="4" fill="#9aa1a8"/><text x="270" y="198" text-anchor="middle" class="tl">bare metal</text>'+
+  tpSvg('g1',160,130,'eyelet',{ly:40})+tpSvg('body',270,171,'',{})+'</svg></div>';
+ },
+ ecm(){
+  const pins=[];for(let i=41;i<=56;i++)pins.push(i);
+  const col={44:['#f5d33a','#111'],45:['#2fbf5b','#f5d33a'],46:['#2a2a2a',null],47:['#9b59ff',null]};
+  let g='';
+  pins.forEach((p,i)=>{const x=70+(i%8)*30,y=i<8?100:150;const c=col[p];
+    g+='<rect x="'+(x-10)+'" y="'+(y-12)+'" width="20" height="24" rx="3" fill="#0b0c0e" stroke="#444"/>';
+    if(c)g+=wireSeg(x,y,x,y-(i<8?60:-60),c[0],c[1]);
+    g+='<text x="'+x+'" y="'+(y+(i<8?-16:28))+'" text-anchor="middle" style="font:600 8px \'JetBrains Mono\';fill:#8c949d">'+p+'</text>';
+  });
+  return header('ECM connector C3','Back-probe view. Use the wiring diagram to find the right pin.')+
+  '<div class="vbox">'+W+DEFS+'<rect width="360" height="240" fill="#0c0e10"/><rect x="40" y="70" width="280" height="110" rx="10" fill="#1b1d20" stroke="#666"/>'+g+
+  tpSvg('e44',160,100,'')+tpSvg('ecm45',190,100,'')+tpSvg('e46',220,100,'')+tpSvg('e47',250,100,'')+'</svg></div>'+
+  '<div class="vnote">C3 wire colors: 44 YEL/BLK · 45 GRN/YEL · 46 BLK · 47 VIO</div>';
+ },
+ diagram(){
+  const at=id=>id?'<b>'+TPN[id]+'</b>':'—';
+  return header('Wiring diagram','Reference only. Find where to probe here, then go to that location.')+'<div class="vbox">'+DIAGRAM+'</div>'+
+  '<div class="vnote">Red probe: '+at(M.leads.red)+'<br>Black probe: '+at(M.leads.blk)+'</div>';
+ }
+};
+const DIAGRAM='<svg viewBox="0 0 400 470" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="470" fill="#0d1013"/>'+
+'<g fill="none" stroke-width="3" stroke-linecap="round">'+
+'<path stroke="#e23b2e" d="M40 40 H125"/><path stroke="#e23b2e" d="M60 40 V75 H78"/><path stroke="#e23b2e" d="M170 40 H220 V138"/>'+
+'<path stroke="#e86fa3" d="M108 75 H118 V110 H125"/><path stroke="#e86fa3" d="M170 110 H280 V138"/>'+
+'<path stroke="#3d8bff" d="M220 262 V340"/><path stroke="#777" d="M220 430 V455"/><path stroke="#2fbf5b" d="M280 262 V300 H318"/><path stroke="#777" d="M40 92 V108"/></g>'+
+'<g style="font:600 9px JetBrains Mono" fill="#cfd3d8"><text x="18" y="30">BATT</text><text x="128" y="30">F12 30A</text><text x="128" y="128">F5 10A</text><text x="80" y="96">IGN</text>'+
+'<text x="226" y="70">RED/WHT</text><text x="200" y="104">PNK</text><text x="226" y="300">BLU</text><text x="226" y="448">BLK → G1</text><text x="284" y="318">GRN/YEL</text>'+
+'<text x="204" y="150">30</text><text x="286" y="150">86</text><text x="204" y="258">87</text><text x="286" y="258">85</text><text x="190" y="336">C1-1</text><text x="190" y="428">C1-2</text><text x="322" y="296">C3-45</text></g>'+
+'<rect x="125" y="30" width="45" height="20" rx="5" fill="#1a1e23" stroke="#8c949d"/><rect x="125" y="100" width="45" height="20" rx="5" fill="#1a1e23" stroke="#8c949d"/>'+
+'<rect x="18" y="46" width="44" height="44" rx="4" fill="#1a1e23" stroke="#8c949d"/>'+
+'<rect x="200" y="138" width="100" height="124" rx="8" fill="#1a1e23" stroke="#8c949d" stroke-dasharray="5 3"/><text x="250" y="204" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#e9ebee">FAN RELAY</text>'+
+'<line x1="220" y1="150" x2="220" y2="178" stroke="#cfd3d8" stroke-width="2"/><line x1="220" y1="178" x2="234" y2="218" stroke="#cfd3d8" stroke-width="2"/><line x1="220" y1="222" x2="220" y2="250" stroke="#cfd3d8" stroke-width="2"/>'+
+'<rect x="270" y="168" width="20" height="56" rx="3" fill="#2a2e33" stroke="#cfd3d8"/>'+
+'<circle cx="220" cy="385" r="42" fill="#1a1e23" stroke="#8c949d"/><text x="220" y="390" text-anchor="middle" style="font:700 12px JetBrains Mono;fill:#e9ebee">M</text><text x="270" y="390" style="font:700 10px JetBrains Mono;fill:#e9ebee">FAN</text>'+
+'<rect x="318" y="280" width="72" height="90" rx="8" fill="#1a1e23" stroke="#8c949d"/><text x="354" y="330" text-anchor="middle" style="font:700 11px JetBrains Mono;fill:#e9ebee">ECM</text>'+
+'<g stroke="#8c949d" stroke-width="2"><line x1="208" y1="458" x2="232" y2="458"/><line x1="213" y1="463" x2="227" y2="463"/><line x1="30" y1="110" x2="50" y2="110"/><line x1="35" y1="115" x2="45" y2="115"/></g></svg>';
+
+/* ===================== ACTIONS ===================== */
+function go(k){loc=k;render();}
+function setActive(c){active=c;render();}
+function probe(id){
+  beep(1500,.03);M.leads[active]=id;M.clamp=false;
+  const key=[M.leads.red,M.leads.blk,M.dial,M.red,JSON.stringify(S),job.fault].join('|');
+  render();
+  if(M.leads.red&&M.leads.blk&&!job.seen[key]){job.seen[key]=1;job.time+=1;job.reads++;
+    const r=reading();addLog(TPN[M.leads.red]+' → '+TPN[M.leads.blk]+': <b>'+r.txt+' '+r.unit+'</b> <span class="dim">['+fnName()+', '+stTxt()+']</span>');render();}
+}
+function fnName(){return {VDC:'V⎓',VAC:'V~',OHM:'Ω',CONT:'continuity',A:'A',OFF:'off'}[M.dial];}
+function stTxt(){return (S.key?'key on':'key off')+(S.key&&S.cmd?', fan cmd ON':'')+(S.fuseIn?'':', F12 pulled')+(S.relay==='out'?', relay pulled'+(S.jumper?' + jumper':''):S.relay==='adapter'?', relay on adapter':'')+(S.fanPlug?'':', C1 unplugged');}
+function addLog(html,head){const l=$('log');if(l.querySelector('.empty'))l.innerHTML='';const d=document.createElement('div');d.innerHTML=(head?'<span class="h">'+head+'</span> ':'')+html;l.prepend(d);}
+function toggleKey(){S.key=!S.key;if(!S.key)S.cmd=false;clickSound();render();}
+function toggleFuse(){S.fuseIn=!S.fuseIn;job.time+=1;addLog(S.fuseIn?'F12 reinstalled.':'F12 pulled. '+(job.fault==='fuse'?'Element is broken.':'Element looks good.'),'FUSE:');render();}
+function cycleRelay(){S.relay={in:'adapter',adapter:'out',out:'in'}[S.relay];if(S.relay!=='out')S.jumper=false;job.time+=1;addLog({in:'Relay reinstalled.',adapter:'Relay mounted on a test adapter. Terminals exposed.',out:'Relay pulled. Socket cavities exposed.'}[S.relay],'RELAY:');render();}
+function toggleJumper(){S.jumper=!S.jumper;clickSound();const s=solve();addLog(S.jumper?'Fused jumper across socket 30→87. '+(s.fan==='fast'?'Fan runs at full speed.':s.fan==='slow'?'Fan runs slowly.':'Fan does not run.'):'Jumper removed.','JUMPER:');render();}
+function toggleFanPlug(){S.fanPlug=!S.fanPlug;addLog(S.fanPlug?'C1 plugged back in.':'C1 unplugged from the fan. Back-probe points now reach the motor terminals only with the harness disconnected.','C1:');render();}
+
+/* meter panel */
+function openMeter(){
+  const pos=[['OFF',-135,'OFF'],['VAC',-90,'V~'],['VDC',-45,'V⎓'],['OHM',0,'Ω'],['CONT',45,'•)))'],['A',90,'A⎓']];
+  const cur=pos.find(p=>p[0]===M.dial)[1];
+  let svg='<svg viewBox="0 0 260 360" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="mb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c800"/><stop offset="1" stop-color="#d6a800"/></linearGradient></defs>'+
+   '<rect x="10" y="6" width="240" height="348" rx="26" fill="#1c1c1c"/><rect x="22" y="18" width="216" height="324" rx="18" fill="url(#mb)"/>'+
+   '<rect x="40" y="34" width="180" height="74" rx="8" fill="#2a2a2a"/><rect x="48" y="42" width="164" height="58" rx="4" fill="#c9d3b6"/>'+
+   '<text x="204" y="88" text-anchor="end" style="font:700 30px JetBrains Mono;fill:#18210d" id="mLcd">'+reading().txt+'</text><text x="56" y="56" style="font:700 9px JetBrains Mono;fill:#18210d">'+unitOf()+'</text>'+
+   '<circle cx="130" cy="200" r="58" fill="#2a2a2a"/><circle cx="130" cy="200" r="40" fill="#3a3a3a" stroke="#111" stroke-width="3"/>'+
+   '<g transform="rotate('+cur+' 130 200)"><rect x="125" y="150" width="10" height="44" rx="4" fill="#111"/><polygon points="130,146 124,160 136,160" fill="#f5c518"/></g>';
+  pos.forEach(([k,a,l])=>{const r=a*Math.PI/180,x=130+Math.sin(r)*78,y=200-Math.cos(r)*78;svg+='<g class="dpos" onclick="setDial(\''+k+'\')"><circle cx="'+x+'" cy="'+y+'" r="17" fill="'+(M.dial===k?'#111':'transparent')+'"/><text x="'+x+'" y="'+(y+4)+'" text-anchor="middle" style="font:700 12px JetBrains Mono;fill:'+(M.dial===k?'#f5c518':'#111')+'">'+l+'</text></g>';});
+  const jack=(x,lab,col,on,click)=>'<g '+(click?'class="dpos" onclick="'+click+'"':'')+'><circle cx="'+x+'" cy="310" r="15" fill="#111" stroke="'+(on?'#fff':'#444')+'" stroke-width="'+(on?3:1)+'"/><circle cx="'+x+'" cy="310" r="6" fill="'+col+'"/><text x="'+x+'" y="340" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#111">'+lab+'</text></g>';
+  svg+=jack(60,'10A','#c0271d',M.red==='A',"setJack('A')")+jack(130,'COM','#222',true,'')+jack(200,'VΩ','#c0271d',M.red==='V',"setJack('V')");
+  svg+='<path d="M130 325 C 130 350, 90 350, 70 358" stroke="#1a1a1a" stroke-width="5" fill="none"/><path d="M'+(M.red==='A'?60:200)+' 325 C '+(M.red==='A'?60:200)+' 350, '+(M.red==='A'?120:230)+' 352, '+(M.red==='A'?150:250)+' 358" stroke="#c0271d" stroke-width="5" fill="none"/></svg>';
+  openModal('<h3>Digital multimeter</h3><p>Tap a dial position to turn it. Tap a jack to move the red lead. Black always stays in COM.</p><div class="meterBig">'+svg+'</div>'+
+   (M.meterFuse?'':'<button class="mbtn" onclick="replaceMeterFuse()"><span>Replace meter\'s 10A fuse</span><small>5 min</small></button>')+
+   '<button class="mbtn" onclick="M.clamp=true;M.dial=\'A\';closeModal();render();addLog(\'Inductive amp clamp around the BLU fan feed wire.\',\'CLAMP:\')"><span>Use inductive amp clamp on BLU wire</span><small>free</small></button>'+
+   '<button class="ghost" onclick="closeModal()">Done</button>');
+}
+function setDial(k){M.dial=k;if(k!=='A')M.clamp=false;clickSound();openMeter();render();}
+function setJack(j){M.red=j;clickSound();openMeter();render();}
+function replaceMeterFuse(){M.meterFuse=true;job.time+=5;addLog('Replaced the meter\'s internal 10A fuse.','METER:');openMeter();render();}
+
+/* scan tool, tests, repair */
+function openModal(html,cls=''){$('modal').className='modal '+cls;$('modal').innerHTML=html;$('modalBg').classList.remove('hidden');}
+function closeModal(){$('modalBg').classList.add('hidden');}
+function openScan(){
+  if(!S.key){openModal('<h3>Scan tool</h3><p>No communication. Turn the key ON first.</p><button class="ghost" onclick="closeModal()">OK</button>','scan');return;}
+  if(!job.scanned){job.scanned=true;job.time+=2;}
+  const f=job.fault,dtc=(f==='coil'||f==='ctrl')?'<span class="code">P0480</span>Cooling Fan 1 Control Circuit':'No DTCs stored';
+  openModal('<h3>Scan tool</h3><div class="scr"><div style="color:#b6ffca">DTCs</div><div>'+dtc+'</div><br><div style="color:#b6ffca">LIVE DATA</div><div class="row"><span>ECT</span><span>226 °F</span></div><div class="row"><span>Fan 1 command</span><span>'+(S.cmd?'ON':'OFF')+'</span></div><div class="row"><span>Battery voltage</span><span>12.4 V</span></div></div>'+
+   '<p>Bidirectional control. The command stays on after you close this, so you can probe.</p><button class="mbtn big" onclick="setCmd('+(!S.cmd)+')">'+(S.cmd?'Command fan OFF':'Command fan ON')+'</button><button class="ghost" onclick="closeModal()">Back</button>','scan');
+}
+function setCmd(on){const b=solve().energized;S.cmd=on;const s=solve();if(s.energized!==b)clickSound();
+  if(on)addLog(s.energized?'Fan commanded ON. Relay clicks. '+(s.fan==='fast'?'Fan runs.':s.fan==='slow'?'Fan turns slowly.':'Fan does not run.'):'Fan commanded ON. No relay click'+(S.relay!=='in'&&S.relay!=='adapter'?' (relay is pulled)':'')+'.','SCAN:');
+  openScan();render();}
+function openTests(){openModal('<h3>Other checks</h3><p>Each costs shop time.</p><button class="mbtn" onclick="bench()"><span>Bench test the relay</span><small>5 min</small></button><button class="mbtn" onclick="inspect()"><span>Visual inspection of fan wiring</span><small>3 min</small></button><button class="ghost" onclick="closeModal()">Close</button>');}
+function bench(){job.time+=5;const f=job.fault;const coil=f==='coil'?'O.L':'74 Ω',cont=f==='contacts'?'O.L':(f==='coil'?'— (won\'t energize)':'0.1 Ω');
+  addLog('Coil 85–86: '+coil+' · contacts 30–87 energized: '+cont,'BENCH:');
+  openModal('<h3>Relay bench test</h3><div class="scr" style="background:#c9d3b6;color:#18210d"><div class="row"><span>Coil 85–86</span><span>'+coil+'</span></div><div class="row"><span>12 V on coil</span><span>'+(f==='coil'?'no click':'clicks')+'</span></div><div class="row"><span>Contacts 30–87 energized</span><span>'+cont+'</span></div></div><p>Spec: coil 60–90 Ω, contacts under 0.2 Ω energized.</p><button class="ghost" onclick="closeModal();render()">Done</button>');render();}
+function inspect(){job.time+=3;const t={ground:'G1 eyelet has some green crust under it.',wire:'Harness looks intact. Loom is taped tight near the radiator support.',ctrl:'Harness looks intact. Loom runs near the exhaust heat shield.',motor:'Fan blade turns freely by hand.'}[job.fault]||'Nothing obvious.';addLog(t,'INSPECT:');closeModal();render();}
+function openRepair(){openModal('<h3>Repair</h3><p>Each repair is 10 minutes plus parts. Verify afterwards.</p>'+REPAIRS.map(r=>'<button class="mbtn" onclick="doRepair(\''+r.id+'\')"><span>'+r.name+'</span><small>$'+r.cost+'</small></button>').join('')+'<button class="ghost" onclick="closeModal()">Cancel</button>');}
+function doRepair(id){const r=REPAIRS.find(x=>x.id===id);job.time+=10;job.parts+=r.cost;job.repairs.push(id);if(job.fault&&FAULTS[job.fault].repair===id)job.fault=null;S.fuseIn=true;S.relay='in';S.jumper=false;S.fanPlug=true;addLog(r.name+'. Everything reassembled. Verify the fix.','REPAIR:');closeModal();render();}
+function closeJob(){
+  const fixed=job.fault===null,right=FAULTS[job.orig].repair,wasted=job.repairs.filter(r=>r!==right).reduce((s,id)=>s+REPAIRS.find(x=>x.id===id).cost,0);
+  let stars=0;if(fixed){stars=1;if(wasted===0)stars++;if(job.time<=30)stars++;fixedCount++;}career(fixed,stars);
+  openModal('<div class="verdict '+(fixed?'ok':'no')+'">'+(fixed?'Fixed it':'Comeback')+'</div><div class="stars">'+'★'.repeat(stars)+'☆'.repeat(3-stars)+'</div><table class="res" style="width:100%;margin:8px 0"><tr><td>Time</td><td style="text-align:right">'+job.time+' min</td></tr><tr><td>Measurements</td><td style="text-align:right">'+job.reads+'</td></tr><tr><td>Wasted on wrong parts</td><td style="text-align:right;color:'+(wasted?'#ff5a4e':'#7dfc9a')+'">$'+wasted+'</td></tr></table><p class="res"><b>Fault:</b> '+FAULTS[job.orig].why+'</p>'+(fixed?'':'<p class="res" style="color:#ff8a80">Command the fan and confirm it runs before you close the job.</p>')+
+   '<p class="res" style="color:#9aa1ab"><b>ASE link:</b> A6 · General Electrical Diagnosis (voltage drop, opens, relays) · A7 · Operating Systems & Controls (cooling fan control).</p>'+
+   '<button class="mbtn big" onclick="closeModal();newJob()">Next job</button><a class="ghost" style="display:block;text-align:center;text-decoration:none" href="ase.html">Study A6 questions</a><a class="ghost" style="display:block;text-align:center;text-decoration:none" href="index.html">Back to garage</a>');
+}
+
+/* sound */
+let ac=null,fanNode=null,lastFan='off',lastCont=0;
+function audio(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();return ac;}
+function beep(f,d){const a=audio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d);}
+function beepCont(){const n=Date.now();if(n-lastCont<900)return;lastCont=n;beep(2700,.35);}
+function clickSound(){const a=audio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=900;g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.035);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.04);}
+function fanSound(s){if(s.fan===lastFan)return;lastFan=s.fan;const a=audio();if(!a)return;if(fanNode){const t=a.currentTime;fanNode.g.gain.linearRampToValueAtTime(0,t+.3);fanNode.s.stop(t+.35);fanNode=null;}
+  if(s.fan==='off')return;const len=a.sampleRate*2,b=a.createBuffer(1,len,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;const src=a.createBufferSource();src.buffer=b;src.loop=true;const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=s.fan==='slow'?350:750;const g=a.createGain();g.gain.value=0;g.gain.linearRampToValueAtTime(s.fan==='slow'?.04:.08,a.currentTime+.4);src.connect(bp);bp.connect(g);g.connect(a.destination);src.start();fanNode={s:src,g};}
+
+newJob();
+
+</script>
+</body>
+</html>

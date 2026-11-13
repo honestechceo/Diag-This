@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check Engine: Mobile Diagnostic Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#121417;--panel:#1c1f23;--panel2:#24282d;--line:#33383f;--text:#e9ebee;--muted:#9aa1ab;--yellow:#f5c518;--green:#7dfc9a;--red:#ff6b5e}
+*{box-sizing:border-box}
+html,body{margin:0;background:radial-gradient(ellipse at top,#1d2228,#0e1012 60%);background-attachment:fixed;color:var(--text);font-family:Barlow,system-ui,sans-serif;font-size:16px;min-height:100%}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:760px;margin:0 auto;padding:12px 12px 40px}
+h1,h2,h3{font-family:"Barlow Condensed",sans-serif;letter-spacing:.02em;margin:0}
+.hazard{height:6px;background:repeating-linear-gradient(-45deg,var(--yellow) 0 12px,#111 12px 24px);border-radius:3px}
+.topbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:10px 0}
+.brand{font-family:"Barlow Condensed";font-size:24px;font-weight:700;text-transform:uppercase;line-height:.95}
+.brand span{color:var(--yellow)}
+.stats{display:flex;gap:6px;align-items:center}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px;text-align:center;min-width:52px}
+.stat b{display:block;font-family:"JetBrains Mono";font-size:14px}
+.stat small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.mute{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:8px;height:44px;width:44px;font-size:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+.ticket{border-left:5px solid var(--yellow)}
+.ticket .veh{font-family:"Barlow Condensed";font-size:22px;font-weight:700}
+.ticket .meta{color:var(--muted);font-size:13px}
+.complaint{margin-top:6px;font-size:16px;font-style:italic}
+.bar{height:9px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--line);margin-top:10px}
+.bar i{display:block;height:100%;background:var(--green);transition:width .4s}
+.bar i.warn{background:var(--yellow)}.bar i.bad{background:var(--red)}
+.clocktxt{color:var(--muted);font-size:12px;display:flex;justify-content:space-between;margin-top:4px}
+
+/* dash */
+.dash{position:sticky;top:0;z-index:15;background:#07080a;border:1px solid #2a2e33;border-radius:14px;padding:4px;margin-bottom:8px;box-shadow:0 8px 20px rgba(0,0,0,.5)}
+.dash svg{width:100%;display:block}
+#dashSvg{transition:opacity .4s}
+#dashSvg.off{opacity:.35}
+#dashSvg.dim{opacity:.55;animation:flick .25s steps(2) infinite}
+@keyframes flick{50%{opacity:.4}}
+.wl{transition:fill .15s}
+.blink{animation:blink .5s steps(2) infinite}
+@keyframes blink{50%{opacity:.15}}
+
+/* bay */
+.bay{background:#0a0b0d;border:1px solid var(--line);border-radius:12px;padding:6px;position:relative}
+.bay svg{width:100%;height:auto;display:block}
+.hint{position:absolute;top:12px;left:0;right:0;text-align:center;font-size:11px;color:#e9ebee;pointer-events:none;font-family:"JetBrains Mono";letter-spacing:.08em;text-shadow:0 1px 3px #000}
+.hs{cursor:pointer;transition:filter .2s}
+.hs:hover{filter:brightness(1.3)}
+.glow{filter:drop-shadow(0 0 6px #f5c518) brightness(1.25)!important}
+.lbl{font-family:"JetBrains Mono";font-size:8px;fill:#e1e4e8;pointer-events:none;letter-spacing:.06em;paint-order:stroke;stroke:#000;stroke-width:2.5px}
+.belt{stroke-dasharray:6 3}
+.running .belt{animation:belt .3s linear infinite}
+@keyframes belt{to{stroke-dashoffset:-18}}
+.spin{animation:spin .2s linear infinite}
+#fanBlades{transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.running #engine{animation:idle .16s linear infinite}
+@keyframes idle{50%{transform:translate(.5px,.3px)}}
+#engine.shake{animation:shake .09s linear infinite!important}
+@keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(2px,-1px)}50%{transform:translate(-1.6px,1px)}75%{transform:translate(1px,1.4px)}}
+.puff{opacity:0;transform-box:fill-box;transform-origin:center}
+.smoking #smokeFx .puff{animation:puff 1.6s ease-out infinite}
+.steaming #steamFx .puff{animation:steam 1.4s ease-out infinite}
+#smokeFx .puff:nth-child(2),#steamFx .puff:nth-child(2){animation-delay:.35s}
+#smokeFx .puff:nth-child(3),#steamFx .puff:nth-child(3){animation-delay:.7s}
+#smokeFx .puff:nth-child(4),#steamFx .puff:nth-child(4){animation-delay:1.05s}
+@keyframes puff{0%{opacity:.9;transform:translate(0,0) scale(.4)}100%{opacity:0;transform:translate(-18px,-30px) scale(2.4)}}
+@keyframes steam{0%{opacity:.7;transform:translate(0,0) scale(.5)}100%{opacity:0;transform:translate(6px,-46px) scale(2.8)}}
+.drip{opacity:0}
+.dripping .drip{animation:drip .9s ease-in infinite}
+.dripping .drip:nth-child(2){animation-delay:.45s}
+@keyframes drip{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(36px)}}
+#sparks{opacity:0}
+.sparking #sparks{animation:spark .35s steps(2) infinite}
+@keyframes spark{0%{opacity:1}50%{opacity:0}}
+.flash{animation:flash .3s steps(2) 6}
+@keyframes flash{50%{fill:#f5c518}}
+.probe{opacity:0;transition:opacity .3s}
+.probing .probe{opacity:1}
+
+.cabin{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.cbtn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 6px;font-size:13px;line-height:1.2}
+.cbtn .t{display:block;font-family:"JetBrains Mono";font-size:11px;color:var(--yellow);margin-top:2px}
+.cbtn:disabled{opacity:.4}
+.cbtn:hover:not(:disabled){border-color:var(--yellow)}
+.sectiontitle{font-size:13px;text-transform:uppercase;color:var(--muted);letter-spacing:.08em;margin:12px 0 0}
+
+.log{background:#0b0e0c;border:2px solid #2c3a30;border-radius:10px;padding:10px;font-family:"JetBrains Mono";font-size:13px;color:var(--green);max-height:280px;overflow:auto}
+.log .e{padding:7px 0;border-bottom:1px dashed #22302a}.log .e:last-child{border:0}
+.log .h{color:var(--yellow);font-weight:600;margin-bottom:3px}
+.log .empty{color:#4f6b58}
+.primary{background:var(--yellow);color:#111;border:0;border-radius:10px;padding:14px 18px;font-family:"Barlow Condensed";font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.04em;width:100%}
+.ghost{background:transparent;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:15px;width:100%}
+.opts{display:grid;gap:8px;margin-top:10px}
+.opt{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:13px 14px;text-align:left;font-size:16px}
+.opt:hover{border-color:var(--yellow)}
+.opt.right{border-color:var(--green);background:#16301f}.opt.wrong{border-color:var(--red);background:#3a1b18}
+.verdict{font-family:"Barlow Condensed";font-size:30px;font-weight:700;text-transform:uppercase}
+.verdict.ok{color:var(--green)}.verdict.no{color:var(--red)}
+.stars{font-size:26px;letter-spacing:4px;color:var(--yellow)}
+.explain{color:#d5d9de;line-height:1.5;margin-top:8px}
+.path{margin-top:10px;font-size:14px;color:var(--muted)}.path b{color:var(--text)}
+.hero{text-align:center;padding:22px 14px}
+.hero h1{font-size:44px;text-transform:uppercase;line-height:1}.hero h1 span{color:var(--yellow)}
+.hero p{color:var(--muted);max-width:520px;margin:12px auto;line-height:1.5}
+.rules{text-align:left;max-width:520px;margin:14px auto;color:#cfd3d8;line-height:1.55;font-size:15px}
+.summary{width:100%;border-collapse:collapse;margin-top:10px}.summary td{padding:8px 6px;border-bottom:1px solid var(--line);font-size:14px;text-align:left}
+.hidden{display:none!important}
+
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:760px;margin:0 auto;background:var(--panel);border-top:3px solid var(--yellow);border-radius:16px 16px 0 0;padding:14px 14px 22px;z-index:21;animation:up .2s ease-out;max-height:85vh;overflow:auto}
+@keyframes up{from{transform:translateY(100%)}}
+.sheet h3{font-size:22px;text-transform:uppercase}
+.sheet p{color:var(--muted);margin:2px 0 8px;font-size:14px}
+.closeup{background:radial-gradient(ellipse at center,#2a2f36,#111316);border:1px solid var(--line);border-radius:12px;margin:6px 0 4px}
+.closeup svg{width:100%;display:block}
+.sbtn{display:flex;justify-content:space-between;align-items:center;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:13px 14px;font-size:16px;margin-top:8px;text-align:left}
+.sbtn .t{font-family:"JetBrains Mono";font-size:12px;color:var(--yellow)}
+.sbtn:disabled{opacity:.45}
+
+.tool-bg{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:30;display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.tool{width:100%;max-width:460px;border-radius:18px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.7);animation:up .22s ease-out}
+.tool .tname{font-family:"Barlow Condensed";font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.06em}
+.screen{background:#0b1a10;border:3px solid #000;border-radius:8px;padding:10px;margin-top:8px;font-family:"JetBrains Mono";color:var(--green);min-height:110px;font-size:13px;line-height:1.45}
+.screen svg{width:100%;display:block;margin-bottom:6px}
+.big{font-size:38px;font-weight:600;text-align:center;letter-spacing:.02em;margin:2px 0 4px}
+.prog{height:6px;background:#132a1b;border-radius:4px;overflow:hidden;margin:10px 0}
+.prog i{display:block;height:100%;width:0;background:var(--green)}
+.prog.go i{animation:prog 1.5s linear forwards}
+@keyframes prog{to{width:100%}}
+.draw{stroke-dasharray:700;stroke-dashoffset:700;animation:draw 1.8s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.grow{transform-box:fill-box;transform-origin:bottom;animation:grow 1s ease-out both}
+@keyframes grow{from{transform:scaleY(0)}}
+.code{display:inline-block;background:#173322;border:1px solid #2f6b45;border-radius:4px;padding:1px 6px;margin-right:6px;color:#b6ffca;font-weight:600}
+.t-scan{background:linear-gradient(#2f3a46,#1d242c);border:2px solid #4a5867}
+.t-meter{background:linear-gradient(#f2c300,#d6a800);color:#111;border:2px solid #9b7a00}
+.t-meter .screen{background:#c9d3b6;color:#1b2410;border-color:#333}
+.t-meter .prog{background:#a9b394}.t-meter .prog i{background:#1b2410}
+.t-load{background:linear-gradient(#b3261e,#7d1913);border:2px solid #4e0f0b}
+.t-gen{background:linear-gradient(#3a3f46,#262a2f);border:2px solid #555}
+.tool .ghost{margin-top:10px;background:rgba(0,0,0,.25);color:inherit;border-color:rgba(0,0,0,.35)}
+.back{display:inline-block;color:#f5c518;text-decoration:none;font:600 13px 'JetBrains Mono',monospace;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hazard"></div>
+  <a class="back" href="index.html">← Garage</a>
+
+  <section id="start" class="hero">
+    <h1>Check <span>Engine</span></h1>
+    <p>You're the mobile mechanic. Five jobs, one shift. Pop the hood, tap a part to test it, and find the real problem before you throw parts at it.</p>
+    <ol class="rules">
+      <li>Tap parts in the engine bay to zoom in and see what tests you can run.</li>
+      <li>Watch the gauges — the dash tells you a lot once the key is on.</li>
+      <li>Every test burns shop-clock minutes. <b>60 minutes</b> per job.</li>
+      <li>Fast, correct calls earn big points. Some jobs you <b>refer out</b>.</li>
+    </ol>
+    <button class="primary" style="max-width:340px" onclick="startShift()">Start shift 🔊</button>
+    <p id="best"></p>
+  </section>
+
+  <section id="game" class="hidden">
+    <div class="topbar">
+      <div class="brand">Check<br><span>Engine</span></div>
+      <div class="stats">
+        <div class="stat"><b id="sJob">1/5</b><small>Job</small></div>
+        <div class="stat"><b id="sScore">0</b><small>Score</small></div>
+        <div class="stat"><b id="sStars">0</b><small>Stars</small></div>
+        <button class="mute" id="muteBtn" onclick="toggleMute()" aria-label="Sound">🔊</button>
+      </div>
+    </div>
+
+    <div class="card ticket">
+      <div class="meta" id="tNum"></div>
+      <div class="veh" id="tVeh"></div>
+      <div class="meta" id="tMeta"></div>
+      <div class="complaint" id="tComplaint"></div>
+      <div class="bar"><i id="clockBar"></i></div>
+      <div class="clocktxt"><span id="clockTxt">0 min used</span><span>60 min budget</span></div>
+    </div>
+
+    <div id="workArea">
+      <!-- DASH -->
+      <div class="dash">
+        <svg id="dashSvg" class="off" viewBox="0 0 400 112">
+          <defs>
+            <radialGradient id="gface"><stop offset="0" stop-color="#1b2027"/><stop offset="1" stop-color="#0b0d10"/></radialGradient>
+          </defs>
+          <rect x="0" y="0" width="400" height="112" rx="12" fill="#0b0d10"/>
+          <!-- tach -->
+          <g transform="translate(70,60)">
+            <circle r="48" fill="url(#gface)" stroke="#3a4048" stroke-width="2"/>
+            <g id="tachTicks"></g>
+            <text y="26" text-anchor="middle" style="font:600 7px 'JetBrains Mono';fill:#7c858f">RPM x1000</text>
+            <line id="tachNeedle" x1="0" y1="6" x2="0" y2="-40" stroke="#ff4d3d" stroke-width="2.5" stroke-linecap="round" transform="rotate(-120)"/>
+            <circle r="5" fill="#2a2f36" stroke="#555"/>
+          </g>
+          <!-- temp -->
+          <g transform="translate(330,60)">
+            <circle r="48" fill="url(#gface)" stroke="#3a4048" stroke-width="2"/>
+            <path d="M -36 -21 A 42 42 0 0 1 36 -21" stroke="#37414c" stroke-width="5" fill="none"/>
+            <path d="M 25 -34 A 42 42 0 0 1 36 -21" stroke="#c0392b" stroke-width="5" fill="none"/>
+            <text x="-34" y="-4" style="font:700 10px 'JetBrains Mono';fill:#8fb8ff">C</text>
+            <text x="27" y="-4" style="font:700 10px 'JetBrains Mono';fill:#ff6b5e">H</text>
+            <text id="tempTxt" y="26" text-anchor="middle" style="font:600 10px 'JetBrains Mono';fill:#cfd3d8">—°F</text>
+            <line id="tempNeedle" x1="0" y1="6" x2="0" y2="-38" stroke="#ff4d3d" stroke-width="2.5" stroke-linecap="round" transform="rotate(-60)"/>
+            <circle r="5" fill="#2a2f36" stroke="#555"/>
+          </g>
+          <!-- center lcd + lights -->
+          <rect x="138" y="12" width="124" height="44" rx="6" fill="#0f2418" stroke="#24412f"/>
+          <text id="lcdState" x="200" y="28" text-anchor="middle" style="font:600 9px 'JetBrains Mono';fill:#5fbf7d">KEY OFF</text>
+          <text id="lcdVolts" x="200" y="48" text-anchor="middle" style="font:600 17px 'JetBrains Mono';fill:#7dfc9a">--.- V</text>
+          <!-- CEL -->
+          <g transform="translate(150,72)"><path id="wlCel" class="wl" d="M2 6 h4 v-3 h8 l3 3 h4 v-2 h3 v10 h-3 v-2 h-3 l-3 4 h-10 v-4 h-3 z" fill="#2a2e33"/></g>
+          <!-- battery -->
+          <g transform="translate(184,74)"><g id="wlBat" class="wl" fill="#2a2e33"><rect x="0" y="3" width="24" height="14" rx="2"/><rect x="3" y="0" width="5" height="3"/><rect x="16" y="0" width="5" height="3"/></g><text x="5" y="14" style="font:bold 9px sans-serif;fill:#0b0d10">+</text><text x="15" y="13" style="font:bold 9px sans-serif;fill:#0b0d10">−</text></g>
+          <!-- oil -->
+          <g transform="translate(218,74)"><path id="wlOil" class="wl" d="M0 8 l6 -3 h10 l8 -4 v3 l-6 8 h-14 z M22 10 q2 4 0 6 q-2 -2 0 -6z" fill="#2a2e33"/></g>
+          <!-- temp -->
+          <g transform="translate(248,70)"><path id="wlTemp" class="wl" d="M5 0 h4 v12 a5 5 0 1 1 -4 0 z M10 3 h4 M10 7 h4" fill="#2a2e33" stroke="#2a2e33"/></g>
+        </svg>
+      </div>
+
+      <div class="bay">
+        <div class="hint" id="hint">TAP A PART TO INSPECT IT</div>
+        <svg id="bay" viewBox="0 0 400 440" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="insul" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#20242a"/><circle cx="4" cy="4" r="1.1" fill="#2e333a"/></pattern>
+            <pattern id="fins" width="4" height="40" patternUnits="userSpaceOnUse"><rect width="4" height="40" fill="#3b4048"/><rect width="1.4" height="40" fill="#1f2328"/></pattern>
+            <pattern id="grille" width="10" height="8" patternUnits="userSpaceOnUse"><rect width="10" height="8" fill="#111"/><rect width="8" height="5" x="1" y="1" fill="#1f2226"/></pattern>
+            <linearGradient id="paint" x1="0" x2="1"><stop offset="0" stop-color="#5e1010"/><stop offset=".5" stop-color="#b52626"/><stop offset="1" stop-color="#5e1010"/></linearGradient>
+            <linearGradient id="paintV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c22b2b"/><stop offset="1" stop-color="#6a1212"/></linearGradient>
+            <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9aa2ab"/><stop offset=".5" stop-color="#5d646d"/><stop offset="1" stop-color="#3c4249"/></linearGradient>
+            <linearGradient id="block" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5058"/><stop offset="1" stop-color="#26292e"/></linearGradient>
+            <linearGradient id="cover" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a828c"/><stop offset=".55" stop-color="#555c65"/><stop offset="1" stop-color="#3d434a"/></linearGradient>
+            <linearGradient id="plastic" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34383e"/><stop offset="1" stop-color="#16181b"/></linearGradient>
+            <radialGradient id="bayShade" cx=".5" cy=".45" r=".7"><stop offset="0" stop-color="#1a1e23"/><stop offset="1" stop-color="#07080a"/></radialGradient>
+            <radialGradient id="pulley"><stop offset="0" stop-color="#7d858e"/><stop offset=".7" stop-color="#4a5058"/><stop offset="1" stop-color="#2a2e33"/></radialGradient>
+            <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000" flood-opacity=".7"/></filter>
+          </defs>
+
+          <!-- hood -->
+          <polygon points="70,6 330,6 374,92 26,92" fill="url(#paintV)"/>
+          <polygon points="80,14 320,14 360,88 40,88" fill="url(#insul)"/>
+          <path d="M120 30 L280 30 M100 60 L300 60" stroke="#2a2f36" stroke-width="2"/>
+          <rect x="190" y="70" width="20" height="10" rx="2" fill="#3a3f46"/>
+
+          <!-- bay -->
+          <rect x="20" y="92" width="360" height="312" rx="6" fill="url(#bayShade)"/>
+          <rect x="20" y="92" width="30" height="312" fill="url(#paint)"/>
+          <rect x="350" y="92" width="30" height="312" fill="url(#paint)" transform="scale(-1,1) translate(-730,0)"/>
+          <rect x="48" y="92" width="304" height="16" fill="#191c20"/>
+          <rect x="48" y="106" width="304" height="3" fill="#000" opacity=".5"/>
+          <!-- strut towers -->
+          <g filter="url(#sh)"><circle cx="54" cy="258" r="16" fill="#3a3f46"/><circle cx="54" cy="258" r="7" fill="#1c1f23"/><circle cx="346" cy="258" r="16" fill="#3a3f46"/><circle cx="346" cy="258" r="7" fill="#1c1f23"/></g>
+          <!-- wheels -->
+          <g class="hs" data-hs="wheels" id="wheelL">
+            <rect x="2" y="190" width="26" height="98" rx="9" fill="#0a0a0a" stroke="#2c2c2c"/>
+            <g stroke="#1e1e1e" stroke-width="2.5"><line x1="4" y1="204" x2="26" y2="206"/><line x1="4" y1="220" x2="26" y2="222"/><line x1="4" y1="236" x2="26" y2="238"/><line x1="4" y1="252" x2="26" y2="254"/><line x1="4" y1="268" x2="26" y2="270"/></g>
+          </g>
+          <g class="hs" data-hs="wheels" id="wheelR">
+            <rect x="372" y="190" width="26" height="98" rx="9" fill="#0a0a0a" stroke="#2c2c2c"/>
+            <g stroke="#1e1e1e" stroke-width="2.5"><line x1="374" y1="206" x2="396" y2="204"/><line x1="374" y1="222" x2="396" y2="220"/><line x1="374" y1="238" x2="396" y2="236"/><line x1="374" y1="254" x2="396" y2="252"/><line x1="374" y1="270" x2="396" y2="268"/></g>
+          </g>
+
+          <!-- upper radiator hose (behind) -->
+          <path d="M262 288 C 300 300, 320 320, 330 360" stroke="#141414" stroke-width="9" fill="none" stroke-linecap="round"/>
+          <path d="M262 288 C 300 300, 320 320, 330 360" stroke="#2c2c2c" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>
+
+          <!-- master cylinder -->
+          <g class="hs" data-hs="master" id="master" filter="url(#sh)">
+            <rect x="60" y="118" width="62" height="20" rx="5" fill="url(#metal)"/>
+            <rect x="70" y="108" width="42" height="18" rx="3" fill="#e2dcbf" opacity=".9"/>
+            <rect x="72" y="115" width="38" height="9" fill="#c19637" opacity=".85"/>
+            <circle cx="91" cy="108" r="6" fill="#f5c518" stroke="#9c7c00"/>
+            <text x="91" y="148" text-anchor="middle" class="lbl">BRAKE M/C</text>
+          </g>
+
+          <!-- fuse box -->
+          <g class="hs" data-hs="fuse" id="fuse" filter="url(#sh)">
+            <rect x="292" y="112" width="52" height="30" rx="5" fill="url(#plastic)" stroke="#3a3f46"/>
+            <rect x="298" y="118" width="40" height="4" rx="1" fill="#2a2e33"/>
+            <text x="318" y="135" text-anchor="middle" style="font:600 6px 'JetBrains Mono';fill:#7c858f">FUSES</text>
+          </g>
+
+          <!-- battery -->
+          <g class="hs" data-hs="battery" id="battery" filter="url(#sh)">
+            <rect x="52" y="160" width="66" height="62" rx="5" fill="url(#plastic)" stroke="#4d535b"/>
+            <rect x="52" y="160" width="66" height="13" rx="4" fill="#2f3439"/>
+            <rect x="58" y="152" width="13" height="10" rx="2" fill="#c0392b"/>
+            <rect x="99" y="152" width="13" height="10" rx="2" fill="#1a1a1a" stroke="#666"/>
+            <path d="M64 158 C 50 158, 42 164, 40 176" stroke="#b02a1e" stroke-width="4" fill="none"/>
+            <path d="M106 158 C 120 158, 126 166, 128 178" stroke="#111" stroke-width="4" fill="none"/>
+            <rect x="62" y="186" width="46" height="14" rx="2" fill="#f5c518"/>
+            <text x="85" y="196" text-anchor="middle" style="font:700 8px 'JetBrains Mono';fill:#111">12V 650CCA</text>
+            <text x="85" y="234" text-anchor="middle" class="lbl">BATTERY</text>
+            <g class="probe">
+              <path d="M64 152 C 70 120, 150 116, 168 112" stroke="#e74c3c" stroke-width="2" fill="none"/>
+              <path d="M105 152 C 110 128, 170 126, 184 112" stroke="#eee" stroke-width="2" fill="none"/>
+            </g>
+          </g>
+
+          <!-- engine -->
+          <g id="engine">
+            <rect x="128" y="126" width="152" height="176" rx="14" fill="url(#block)" filter="url(#sh)"/>
+            <rect x="140" y="138" width="128" height="88" rx="18" fill="url(#cover)"/>
+            <rect x="146" y="141" width="116" height="5" rx="2" fill="#fff" opacity=".12"/>
+            <!-- wiring harness -->
+            <path d="M144 160 C 180 150, 230 150, 266 158 C 290 150, 300 146, 304 142" stroke="#111" stroke-width="5" fill="none"/>
+            <path d="M144 160 C 180 150, 230 150, 266 158 C 290 150, 300 146, 304 142" stroke="#2e2e2e" stroke-width="5" stroke-dasharray="2 3" fill="none"/>
+            <g fill="#f5c518"><rect x="166" y="151" width="4" height="7"/><rect x="214" y="149" width="4" height="7"/><rect x="258" y="153" width="4" height="7"/></g>
+            <g class="hs" data-hs="fluids">
+              <circle cx="254" cy="208" r="9" fill="#f5c518" stroke="#9c7c00"/>
+              <text x="254" y="211" text-anchor="middle" style="font:bold 6.5px sans-serif;fill:#111">OIL</text>
+            </g>
+            <g class="hs" data-hs="coils" id="coils">
+              <g filter="url(#sh)">
+                <rect id="coil1" x="150" y="166" width="20" height="34" rx="4" fill="#161616"/>
+                <rect id="coil2" x="176" y="166" width="20" height="34" rx="4" fill="#161616"/>
+                <rect id="coil3" x="202" y="166" width="20" height="34" rx="4" fill="#161616"/>
+                <rect id="coil4" x="228" y="166" width="20" height="34" rx="4" fill="#161616"/>
+              </g>
+              <g fill="#6c727a"><rect x="154" y="169" width="12" height="6" rx="1"/><rect x="180" y="169" width="12" height="6" rx="1"/><rect x="206" y="169" width="12" height="6" rx="1"/><rect x="232" y="169" width="12" height="6" rx="1"/></g>
+              <g style="font:700 7px 'JetBrains Mono';fill:#9aa1ab" text-anchor="middle"><text x="160" y="194">1</text><text x="186" y="194">2</text><text x="212" y="194">3</text><text x="238" y="194">4</text></g>
+              <text x="199" y="219" text-anchor="middle" class="lbl">COILS</text>
+            </g>
+            <g id="sparks"><path d="M186 160 l4 -9 l1 6 l6 -5 l-3 8 l7 -1 l-8 5z" fill="#ffe14d"/></g>
+            <g class="hs" data-hs="intake" id="intake">
+              <rect x="140" y="232" width="128" height="32" rx="7" fill="url(#plastic)" filter="url(#sh)"/>
+              <g fill="#3a3f46"><rect x="150" y="236" width="18" height="24" rx="4"/><rect x="176" y="236" width="18" height="24" rx="4"/><rect x="202" y="236" width="18" height="24" rx="4"/><rect x="228" y="236" width="18" height="24" rx="4"/></g>
+              <circle cx="280" cy="248" r="12" fill="url(#metal)" stroke="#222"/>
+              <circle cx="280" cy="248" r="6" fill="#16181b"/>
+              <path id="pcv" d="M142 182 C 112 190, 112 238, 142 252" stroke="#121212" stroke-width="6" fill="none" stroke-linecap="round"/>
+              <text x="204" y="277" text-anchor="middle" class="lbl">INTAKE / PCV</text>
+            </g>
+          </g>
+
+          <!-- air box + tube -->
+          <path d="M292 248 C 306 248, 310 250, 318 252" stroke="#1d1f22" stroke-width="13" fill="none"/>
+          <g filter="url(#sh)"><rect x="304" y="222" width="44" height="62" rx="8" fill="url(#plastic)" stroke="#3a3f46"/><g stroke="#2a2e33" stroke-width="2"><line x1="310" y1="236" x2="342" y2="236"/><line x1="310" y1="270" x2="342" y2="270"/></g></g>
+          <text x="326" y="256" text-anchor="middle" style="font:600 6px 'JetBrains Mono';fill:#7c858f">AIR</text>
+
+          <g id="smokeFx">
+            <circle class="puff" cx="114" cy="214" r="6" fill="#ececec"/>
+            <circle class="puff" cx="114" cy="214" r="6" fill="#dcdcdc"/>
+            <circle class="puff" cx="114" cy="214" r="6" fill="#f2f2f2"/>
+            <circle class="puff" cx="114" cy="214" r="6" fill="#d0d0d0"/>
+          </g>
+
+          <!-- coolant reservoir -->
+          <g class="hs" data-hs="reservoir" id="reservoir" filter="url(#sh)">
+            <rect x="300" y="152" width="44" height="58" rx="8" fill="rgba(230,240,245,.12)" stroke="#9fb3bd"/>
+            <rect id="coolant" x="302" y="170" width="40" height="38" rx="6" fill="#ff5fa8" opacity=".78"/>
+            <rect x="304" y="156" width="6" height="50" rx="3" fill="#fff" opacity=".15"/>
+            <line x1="336" y1="168" x2="344" y2="168" stroke="#fff"/>
+            <line x1="336" y1="198" x2="344" y2="198" stroke="#fff"/>
+            <circle cx="322" cy="152" r="8" fill="#151515" stroke="#f5c518" stroke-width="2"/>
+            <text x="322" y="221" text-anchor="middle" class="lbl">COOLANT</text>
+          </g>
+
+          <!-- accessory drive -->
+          <g class="hs" data-hs="alt" id="alt">
+            <path class="belt" d="M110 296 L160 286 L207 307 L224 325 L207 343 L110 340 L88 318 Z" stroke="#090909" stroke-width="5" fill="none" stroke-linejoin="round"/>
+            <g filter="url(#sh)"><circle cx="110" cy="318" r="22" fill="url(#metal)" stroke="#2c2f33" stroke-width="2"/></g>
+            <g stroke="#2c2f33" stroke-width="2.2"><line x1="99" y1="309" x2="121" y2="309"/><line x1="97" y1="318" x2="123" y2="318"/><line x1="99" y1="327" x2="121" y2="327"/></g>
+            <circle cx="207" cy="325" r="17" fill="url(#pulley)" stroke="#1d1f22" stroke-width="2"/>
+            <circle cx="207" cy="325" r="5" fill="#1b1d20"/>
+            <text x="110" y="353" text-anchor="middle" class="lbl">ALTERNATOR</text>
+          </g>
+          <g id="pump"><circle cx="160" cy="299" r="12" fill="url(#pulley)" stroke="#1d1f22" stroke-width="2"/><circle cx="160" cy="299" r="4" fill="#1d1f22"/></g>
+          <g id="dripFx">
+            <ellipse class="drip" cx="160" cy="313" rx="2.4" ry="3.4" fill="#ff5fa8"/>
+            <ellipse class="drip" cx="156" cy="313" rx="2.4" ry="3.4" fill="#ff5fa8"/>
+          </g>
+
+          <!-- radiator + fan -->
+          <g class="hs" data-hs="radiator" id="radiator">
+            <rect x="48" y="358" width="304" height="9" rx="2" fill="#2a2e33"/>
+            <rect x="48" y="366" width="304" height="32" fill="url(#fins)" stroke="#61676f"/>
+            <circle cx="336" cy="362" r="6" fill="#c9ced4" stroke="#555"/>
+            <g filter="url(#sh)"><circle cx="292" cy="330" r="28" fill="#121417" stroke="#3a3f46" stroke-width="3"/></g>
+            <g id="fanBlades">
+              <path d="M292 330 C 286 316, 290 304, 300 303 C 300 314, 298 322, 292 330Z" fill="#555c65"/>
+              <path d="M292 330 C 306 324, 318 328, 319 338 C 308 338, 300 336, 292 330Z" fill="#555c65"/>
+              <path d="M292 330 C 298 344, 294 356, 284 357 C 284 346, 286 338, 292 330Z" fill="#555c65"/>
+              <path d="M292 330 C 278 336, 266 332, 265 322 C 276 322, 284 324, 292 330Z" fill="#555c65"/>
+              <circle cx="292" cy="330" r="6" fill="#2a2e33"/>
+            </g>
+            <text x="200" y="386" text-anchor="middle" class="lbl">RADIATOR / FAN</text>
+          </g>
+          <g id="steamFx">
+            <circle class="puff" cx="322" cy="146" r="7" fill="#fff" opacity=".8"/>
+            <circle class="puff" cx="336" cy="356" r="7" fill="#fff"/>
+            <circle class="puff" cx="322" cy="146" r="7" fill="#fff"/>
+            <circle class="puff" cx="336" cy="356" r="7" fill="#fff"/>
+          </g>
+
+          <!-- prop rod, bumper -->
+          <line x1="338" y1="92" x2="348" y2="150" stroke="#b7bec6" stroke-width="3"/>
+          <rect x="18" y="402" width="364" height="32" rx="12" fill="url(#paintV)"/>
+          <rect x="120" y="408" width="160" height="18" rx="6" fill="url(#grille)"/>
+          <rect x="28" y="396" width="62" height="14" rx="6" fill="#e9eef3" opacity=".9"/>
+          <rect x="310" y="396" width="62" height="14" rx="6" fill="#e9eef3" opacity=".9"/>
+          <rect x="34" y="399" width="20" height="8" rx="3" fill="#fff8d6"/><rect x="346" y="399" width="20" height="8" rx="3" fill="#fff8d6"/>
+        </svg>
+      </div>
+
+      <h3 class="sectiontitle">Cabin &amp; road</h3>
+      <div class="cabin" id="cabin"></div>
+
+      <div class="card">
+        <h2 style="font-size:19px;margin-bottom:8px">Tech notes</h2>
+        <div class="log" id="log"><div class="empty">&gt; No readings yet.</div></div>
+      </div>
+      <button class="primary" onclick="openDiagnosis()">Make the call</button>
+    </div>
+
+    <div id="diagArea" class="card hidden">
+      <h2 style="font-size:22px">What's wrong with it?</h2>
+      <div class="opts" id="opts"></div>
+      <button class="ghost" id="backBtn" style="margin-top:12px" onclick="closeDiagnosis()">Back to testing</button>
+    </div>
+
+    <div id="resultArea" class="card hidden">
+      <div class="verdict" id="rVerdict"></div>
+      <div class="stars" id="rStars"></div>
+      <div id="rPoints" style="font-family:'JetBrains Mono';margin-top:4px;font-size:14px"></div>
+      <div class="explain" id="rExplain"></div>
+      <div class="path" id="rPath"></div>
+      <button class="primary" style="margin-top:16px" id="nextBtn" onclick="nextJob()">Next job</button>
+    </div>
+  </section>
+
+  <section id="end" class="hidden">
+    <div class="card hero">
+      <h1>Shift <span>over</span></h1>
+      <div class="stars" id="eStars" style="margin-top:10px"></div>
+      <p id="eLine"></p>
+      <table class="summary" id="eTable"></table>
+      <button class="primary" style="margin-top:18px" onclick="startShift()">New shift</button>
+    </div>
+  </section>
+</div>
+
+<div id="sheetBg" class="sheet-bg hidden" onclick="closeSheet()"></div>
+<div id="sheet" class="sheet hidden"></div>
+<div id="toolBg" class="tool-bg hidden"><div id="tool" class="tool"></div></div>
+
+<script>
+function career(fixed,stars){try{const c=JSON.parse(localStorage.getItem('ce_career')||'{}');c.jobs=(c.jobs||0)+1;c.fixed=(c.fixed||0)+(fixed?1:0);c.stars=(c.stars||0)+stars;localStorage.setItem('ce_career',JSON.stringify(c));}catch(e){}}
+
+const BUDGET=60, JOBS_PER_SHIFT=5;
+
+const TESTS=[
+ {id:'interview',name:'Talk to customer',min:2,tool:'gen',eng:'off'},
+ {id:'visual',name:'Visual inspection',min:5,tool:'gen',eng:'off'},
+ {id:'fluid',name:'Check fluids',min:3,tool:'gen',eng:'off'},
+ {id:'testdrive',name:'Test drive',min:10,tool:'gen',eng:'drive'},
+ {id:'scan',name:'Scan codes (OBD-II)',min:5,tool:'scan',eng:'run'},
+ {id:'live',name:'Live data / fuel trims',min:10,tool:'scan',eng:'rev'},
+ {id:'coil',name:'Swap coil to other cylinder',min:10,tool:'gen',eng:'run'},
+ {id:'smoke',name:'Smoke test intake',min:15,tool:'gen',eng:'off'},
+ {id:'battv',name:'Battery voltage',min:2,tool:'meter',eng:'off'},
+ {id:'load',name:'Battery load test',min:5,tool:'load',eng:'off'},
+ {id:'charge',name:'Charging system test',min:5,tool:'meter',eng:'run'},
+ {id:'draw',name:'Parasitic draw test',min:20,tool:'meter',eng:'off'},
+ {id:'brakes',name:'Pull wheels, inspect brakes',min:20,tool:'gen',eng:'off'},
+ {id:'runout',name:'Rotor runout (dial indicator)',min:15,tool:'gen',eng:'off'},
+ {id:'pedal',name:'Pedal hold test',min:3,tool:'gen',eng:'run'},
+ {id:'pressure',name:'Cooling system pressure test',min:10,tool:'gen',eng:'off'},
+ {id:'fan',name:'Cooling fan circuit test',min:10,tool:'meter',eng:'run'},
+];
+const TOOLNAME={scan:'Scan tool',meter:'Digital multimeter',load:'Carbon pile load tester',gen:'Inspection'};
+const T=id=>TESTS.find(t=>t.id===id);
+
+const PARTS={
+ battery:{name:'Battery',desc:'12 V battery, terminals and cables.',tests:['battv','load','draw']},
+ fuse:{name:'Fuse box',desc:'Underhood fuses and relays.',tests:['draw','fan']},
+ alt:{name:'Alternator & belt',desc:'Charging system and accessory drive.',tests:['charge','visual']},
+ coils:{name:'Ignition coils',desc:'Coil-on-plug, cylinders 1–4.',tests:['coil']},
+ intake:{name:'Intake & PCV',desc:'Intake manifold, throttle body, PCV hose.',tests:['smoke']},
+ reservoir:{name:'Coolant reservoir',desc:'Coolant level and pressure cap.',tests:['fluid','pressure']},
+ radiator:{name:'Radiator & fan',desc:'Radiator, cap and electric cooling fan.',tests:['pressure','fan']},
+ master:{name:'Brake master cylinder',desc:'Brake fluid reservoir and master cylinder.',tests:['fluid','pedal']},
+ wheels:{name:'Wheels & brakes',desc:'Pads, rotors, calipers.',tests:['brakes','runout']},
+ fluids:{name:'Engine oil',desc:'Oil cap and dipstick.',tests:['fluid']},
+};
+const CABIN=['interview','visual','testdrive','scan','live','pedal'];
+
+const NORMAL={
+ visual:'Nothing obvious. Belts, hoses, wiring and connectors look normal.',
+ fluid:'Oil, coolant, brake and power steering fluid at proper level and condition.',
+ testdrive:'Drives normally. Could not reproduce anything unusual.',
+ scan:'No DTCs stored. All monitors ready.',
+ live:'Fuel trims within ±5%. MAF, O2, coolant temp all reading normal.',
+ coil:'No misfire present — nothing to track.',
+ smoke:'No smoke escaping. Intake is sealed.',
+ battv:'12.6 V at rest — fully charged.',
+ load:'Passes load test. Holds above 10 V under load.',
+ charge:'14.2 V running, holds under electrical load. Charging system OK.',
+ draw:'35 mA after modules go to sleep — within spec.',
+ brakes:'Pads 7 mm front / 6 mm rear. Rotors smooth. Calipers and slides move freely. No leaks.',
+ runout:'0.001" rotor runout — within spec.',
+ pedal:'Pedal firm and holds steady under constant pressure.',
+ pressure:'16 psi held for 10 minutes. No leaks.',
+ fan:'Fan kicks on at 220°F as commanded. Relay and motor OK.',
+};
+
+const CASES=[
+ {veh:'2011 Honda Accord',miles:148000,name:'Dana',complaint:'"It just clicks when I turn the key."',fx:{noStart:true,voff:11.8,von:14.3,batDate:'2019'},
+  r:{interview:'Lights look kind of dim. It\'s been slow to crank for a couple of weeks, worse on cold mornings.',visual:'Terminals tight and clean. Battery date sticker reads 2019.',battv:'11.8 V at rest — badly discharged.',load:'After a charge: FAILS. Drops to 7.9 V within 5 seconds.',charge:'After a jump: 14.3 V running, steady under load. Alternator is charging.',testdrive:'Won\'t start without a jump.'},
+  opts:['Worn-out battery','Failed starter motor','Failed alternator','Corroded battery terminals','Parasitic draw draining the battery','Bad ignition switch'],ans:0,key:['battv','load','charge'],
+  why:'Low resting voltage plus a failed load test after a full charge means the battery can\'t hold capacity. The charging test rules out the alternator, and clean terminals rule out a connection issue. A seven-year-old battery with weeks of slow cranking is the classic pattern.'},
+ {veh:'2016 Ford Escape',miles:72000,name:'Marcus',complaint:'"Dead every single morning. Battery is only a year old."',fx:{voff:12.1,von:14.4,batDate:'2025',fuse:true},
+  r:{interview:'Starts fine with a jump and runs all day. Dead again after it sits overnight.',visual:'Battery is new (2025 date). Cables clean and tight.',battv:'12.1 V after sitting overnight — partially drained.',load:'After a charge: passes load test.',charge:'14.4 V running. Charging system OK.',draw:'420 mA after 45 min — way over spec. Pulling fuses one at a time: drops to 28 mA with the interior/cargo lamp fuse out. Cargo light is on with the liftgate shut.'},
+  opts:['Liftgate ajar switch keeping cargo lamp on','Defective new battery','Alternator diode leaking current','Starter motor dragging','Failed body control module','Battery cable resistance'],ans:0,key:['battv','load','charge','draw'],
+  why:'Battery passes, alternator passes, but it dies overnight — that\'s a parasitic draw. Pulling fuses pointed to the interior lamp circuit, and the cargo light staying on with the gate closed means the liftgate switch isn\'t telling the car it\'s shut.'},
+ {veh:'2009 Chevy Silverado 1500',miles:190000,name:'Ray',complaint:'"Battery light came on during the highway drive. Now the headlights dim at idle."',fx:{voff:12.2,von:12.1,batLight:true},
+  r:{interview:'Gauges flicker now and then. No noises. Battery was replaced last year.',visual:'Serpentine belt intact with proper tension. Alternator wiring secure.',battv:'12.2 V at rest.',load:'After a charge: passes load test.',charge:'12.1 V running — NOT charging. No change at 2,000 rpm.',testdrive:'Battery light on. Voltage gauge reads low and dropping.'},
+  opts:['Failed alternator','Worn serpentine belt','Weak battery','Corroded engine ground','Bad voltage gauge','Blown main fuse'],ans:0,key:['visual','charge'],
+  why:'Running voltage below resting voltage means nothing is charging. With the belt intact and tight and the wiring secure, the alternator is the failure.'},
+ {veh:'2018 Nissan Rogue',miles:61000,name:'Priya',complaint:'"High-pitched squeal when I brake. Getting louder."',fx:{pad:2},
+  r:{interview:'Squeals mostly on light braking. No pulling, pedal feels normal. Never had the brakes done.',brakes:'Front pads at 2 mm — wear indicator tabs contacting the rotor. Front rotors smooth and above minimum thickness. Rear pads 5 mm.',testdrive:'Metallic squeal on light braking, goes quiet under hard braking.'},
+  opts:['Front pads worn to wear indicators','Warped front rotors','Sticking caliper','Low brake fluid','Bad wheel bearing','Glazed rear pads'],ans:0,key:['brakes'],
+  why:'Wear indicators are designed to squeal when pads get thin. At 2 mm with the tabs touching, the front pads are done. Rotors measured good.'},
+ {veh:'2014 Toyota Camry',miles:112000,name:'Luis',complaint:'"The pedal pulses and the wheel shakes when I brake coming off the highway."',fx:{pad:6,hotspots:true,runout:'0.005"'},
+  r:{interview:'Totally smooth while cruising. It\'s only when braking from speed.',testdrive:'Pedal pulsation and steering shake braking from 60 mph. Smooth cruising at the same speed.',brakes:'Pads 6 mm. Slight blue hot spots on front rotors.',runout:'Front rotors: 0.005" lateral runout (spec max 0.002"). Rears in spec.'},
+  opts:['Excessive front rotor runout','Worn brake pads','Tires out of balance','Worn tie rod ends','ABS module fault','Bad wheel bearing'],ans:0,key:['testdrive','runout'],
+  why:'Shake only under braking points to the rotors — tire balance would shake while cruising too. The dial indicator confirms front runout over double spec. Check hub runout while you\'re there.'},
+ {veh:'2012 Jeep Grand Cherokee',miles:135000,name:'Theresa',complaint:'"The brake pedal slowly sinks to the floor at red lights."',fx:{pad:5,darkFluid:true},
+  r:{interview:'Feels OK when I first press it. Holding at a light, it slowly creeps down.',fluid:'Brake fluid is full but dark. Other fluids OK.',visual:'No wetness at master cylinder or booster seam. No leaks under the vehicle.',brakes:'No leaks at calipers, hoses or lines. Pads 5 mm.',pedal:'Pedal firm at first, then slowly sinks under steady pressure. No external leaks to explain it.'},
+  opts:['Master cylinder bypassing internally','Air in the brake lines','Leaking rear caliper','Failed brake booster','Worn brake pads','ABS module failure'],ans:0,key:['fluid','visual','pedal'],
+  why:'Firm then sinking under steady pressure, with a full reservoir and no external leaks, means fluid is slipping past the master cylinder seals. Air gives a spongy pedal from the start; a bad booster gives a hard pedal.'},
+ {veh:'2015 Ford F-150 3.5 EcoBoost',miles:98000,name:'Kevin',complaint:'"Check engine light is flashing and it shakes bad."',fx:{misfire:true,cel:'flash',graph:'misfire'},
+  r:{interview:'Shakes at idle and when I get on it. Started yesterday.',scan:'P0302 — Cylinder 2 misfire detected.',live:'Misfire counter high on cylinder 2, zero on others. Fuel trims normal.',coil:'Swapped cylinder 2 coil with cylinder 4. Cleared codes, ran it — now setting P0304. The misfire followed the coil.',visual:'Coil boots intact. No oil in the plug wells.',testdrive:'Rough idle, stumble under load, CEL flashing.'},
+  opts:['Failed cylinder 2 ignition coil','Fouled cylinder 2 spark plug','Clogged cylinder 2 injector','Vacuum leak','Low compression on cylinder 2','Failing catalytic converter'],ans:0,key:['scan','coil'],
+  why:'Single-cylinder misfire with normal trims is ignition, injector or mechanical. Swapping the coil and watching the code move to P0304 proves the coil. A flashing CEL can cook the cat — don\'t let them drive it far.'},
+ {veh:'2013 Hyundai Sonata 2.4',miles:128000,name:'Angela',complaint:'"Check engine light is on and it idles a little rough."',fx:{smoke:true,cel:true,graph:'lean'},
+  r:{interview:'Runs fine on the highway. Idle feels lumpy, especially cold.',scan:'P0171 — System too lean (Bank 1).',live:'Short + long term fuel trims +22% at idle. Drop to +4% at 2,500 rpm.',smoke:'Smoke pouring out of a cracked PCV hose under the intake manifold.',visual:'Nothing obvious from the top of the engine.',testdrive:'Slightly rough idle. Pulls fine.'},
+  opts:['Vacuum leak (cracked PCV hose)','Dirty MAF sensor','Weak fuel pump','Bad upstream O2 sensor','Clogged catalytic converter','Failing ignition coil'],ans:0,key:['scan','live','smoke'],
+  why:'Lean trims high at idle that normalize at higher rpm are the vacuum-leak signature. A dirty MAF or weak pump would stay lean or get worse under load. The smoke test found the cracked PCV hose.'},
+ {veh:'2011 Chevy Equinox 2.4',miles:140000,name:'Sam',complaint:'"Temp gauge keeps creeping up and it smells sweet. I keep adding coolant."',fx:{leak:true,lowCoolant:true,overheat:'always',psi:'16 → 8 psi'},
+  r:{interview:'Adding coolant about once a week. No white smoke that I\'ve noticed.',fluid:'Coolant below MIN in the reservoir. Oil looks clean — no milkshake.',visual:'Dried coolant crust below the water pump.',pressure:'Drops from 16 to 8 psi in 5 minutes. Coolant dripping from the water pump weep hole.',scan:'No DTCs stored.'},
+  opts:['Leaking water pump','Blown head gasket','Stuck thermostat','Bad radiator cap','Leaking heater core','Failed cooling fan'],ans:0,key:['fluid','pressure'],
+  why:'Losing coolant with a sweet smell means an external leak until proven otherwise. Clean oil and no smoke argue against a head gasket, and the pressure test caught it dripping from the water pump weep hole.'},
+ {veh:'2007 Nissan Altima',miles:165000,name:'Tony',complaint:'"Overheats sitting in traffic, but it\'s fine on the highway."',fx:{fanDead:true,overheat:'idle'},
+  r:{interview:'Coolant seems fine. A/C also blows warmer when I\'m stopped.',testdrive:'Temp normal at speed. At idle it climbs to 235°F.',fan:'Fan does NOT run at 230°F. Direct 12 V to the fan motor: spins fine. No click from the relay. Swapped in a known-good relay — fan runs.',fluid:'Coolant full and clean.'},
+  opts:['Failed cooling fan relay','Failed fan motor','Stuck thermostat','Weak water pump','Clogged radiator','Low coolant'],ans:0,key:['fan'],
+  why:'Overheating only at idle means airflow, not coolant flow — at speed, air moves through the radiator on its own. The motor works on direct power, the relay doesn\'t click, and a known-good relay fixes it.'},
+ {veh:'2014 Nissan Sentra (CVT)',miles:140000,name:'Jasmine',complaint:'"RPMs flare up when I accelerate and it shudders from a stop."',fx:{cel:true,graph:'cvt',flare:true},
+  r:{interview:'Feels like it\'s slipping. Getting worse over the past month. Never had the transmission fluid changed.',scan:'P17F0 — CVT judder detected.',live:'CVT fluid temperature running high. Engine data normal.',fluid:'CVT fluid dark with a burnt smell.',testdrive:'RPM flare on acceleration, judder from a stop. Engine itself runs smooth.'},
+  opts:['Internal CVT failure — refer to a transmission shop','Engine misfire','Worn motor mounts','Dirty throttle body','Clogged fuel filter','Worn CV axle'],ans:0,key:['scan','fluid'],
+  why:'CVT judder code, burnt fluid, RPM flare with a healthy engine — internal transmission wear. That\'s outside mobile scope. Document the evidence and refer them out.'},
+ {veh:'2017 Honda CR-V',miles:88000,name:'Mike',complaint:'"A/C is blowing warm air."',fx:{},
+  r:{interview:'Fan blows fine on every speed. Air just isn\'t cold. Slowly got worse since spring.',visual:'A/C compressor clutch not engaging. Oily residue on the condenser line fitting.',scan:'No DTCs stored.',fluid:'Engine fluids OK.'},
+  opts:['Refrigerant leak — refer to an A/C shop','Dirty cabin air filter','Bad blower motor resistor','Stuck-open thermostat','Low engine coolant','Failed heater core'],ans:0,key:['interview','visual'],
+  why:'Compressor not engaging plus oily residue at a fitting means refrigerant leaked out — low pressure keeps the clutch off. A/C work needs recovery equipment, so refer out.'},
+];
+
+let shift,job,used,ran,state,busy=false;
+const $=id=>document.getElementById(id);
+const bay=()=>$('bay');
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function show(id){['start','game','end'].forEach(s=>$(s).classList.toggle('hidden',s!==id));window.scrollTo(0,0);}
+function loadBest(){try{return +localStorage.getItem('ce_best')||0;}catch(e){return 0;}}
+function saveBest(v){try{localStorage.setItem('ce_best',v);}catch(e){}}
+(function(){const b=loadBest();if(b)$('best').textContent='Best shift: '+b+' pts';})();
+
+// tach ticks
+(function(){let h='';for(let i=0;i<=8;i++){const a=(-120+i*30)*Math.PI/180,x1=Math.sin(a)*40,y1=-Math.cos(a)*40,x2=Math.sin(a)*46,y2=-Math.cos(a)*46,tx=Math.sin(a)*31,ty=-Math.cos(a)*31+3;
+ h+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+(i>=6?'#ff4d3d':'#cfd3d8')+'" stroke-width="2"/><text x="'+tx+'" y="'+ty+'" text-anchor="middle" style="font:600 8px \'JetBrains Mono\';fill:'+(i>=6?'#ff6b5e':'#cfd3d8')+'">'+i+'</text>';}
+ $('tachTicks').innerHTML=h;})();
+
+document.querySelectorAll('.hs').forEach(g=>g.addEventListener('click',e=>{e.stopPropagation();openSheet(g.dataset.hs);}));
+
+/* ================= AUDIO ================= */
+let ac=null,master=null,muted=false,idle=null,fanSnd=null;
+function audio(){
+  if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=muted?0:.22;master.connect(ac.destination);}catch(e){ac=null;}}
+  if(ac&&ac.state==='suspended')ac.resume();return ac;
+}
+function toggleMute(){muted=!muted;$('muteBtn').textContent=muted?'🔇':'🔊';if(master)master.gain.value=muted?0:.22;}
+function clicks(n){const a=audio();if(!a)return;for(let i=0;i<n;i++){const t=a.currentTime+i*.14,o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=1100;g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.001,t+.03);o.connect(g);g.connect(master);o.start(t);o.stop(t+.04);}}
+function beep(f=1800,d=.08){const a=audio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(master);o.start(t);o.stop(t+d);}
+function crank(cb){const a=audio();if(!a){cb&&cb();return;}const t=a.currentTime,o=a.createOscillator(),g=a.createGain(),l=a.createOscillator(),lg=a.createGain();
+  o.type='sawtooth';o.frequency.value=140;l.frequency.value=9;lg.gain.value=.25;l.connect(lg);lg.connect(g.gain);g.gain.value=.3;o.connect(g);g.connect(master);o.start(t);l.start(t);o.stop(t+.7);l.stop(t+.7);setTimeout(()=>cb&&cb(),650);}
+function startIdle(){
+  const a=audio();if(!a||idle)return;
+  const g=a.createGain();g.gain.value=0;const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=380;
+  const o1=a.createOscillator(),o2=a.createOscillator();o1.type='sawtooth';o2.type='square';o1.frequency.value=50;o2.frequency.value=25.3;
+  const g2=a.createGain();g2.gain.value=.35;o1.connect(lp);o2.connect(g2);g2.connect(lp);lp.connect(g);g.connect(master);
+  o1.start();o2.start();g.gain.linearRampToValueAtTime(.55,a.currentTime+.3);
+  idle={g,o1,o2,miss:null};
+  if(job.fx.misfire){idle.miss=setInterval(()=>{if(Math.random()<.35){const t=a.currentTime;g.gain.setValueAtTime(.12,t);g.gain.linearRampToValueAtTime(.55,t+.07);}},120);}
+}
+function stopIdle(){if(!idle||!ac)return;const {g,o1,o2,miss}=idle;clearInterval(miss);const t=ac.currentTime;g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0,t+.35);o1.stop(t+.4);o2.stop(t+.4);idle=null;}
+function startFan(){const a=audio();if(!a||fanSnd)return;const len=a.sampleRate*2,buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  const s=a.createBufferSource();s.buffer=buf;s.loop=true;const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=700;bp.Q.value=.6;const g=a.createGain();g.gain.value=0;g.gain.linearRampToValueAtTime(.35,a.currentTime+.4);s.connect(bp);bp.connect(g);g.connect(master);s.start();fanSnd={s,g};}
+function stopFan(){if(!fanSnd||!ac)return;const t=ac.currentTime;fanSnd.g.gain.linearRampToValueAtTime(0,t+.3);fanSnd.s.stop(t+.35);fanSnd=null;}
+
+/* ================= SIM / DASH ================= */
+const sim={key:false,run:false,mode:'off',t0:0,rpm:0,temp:110,tempT:110,fan:false};
+function setEngine(mode){
+  const fx=job.fx;sim.mode=mode;sim.t0=performance.now();
+  if(mode==='off'){sim.key=false;sim.run=false;stopIdle();bay().classList.remove('running','sparking');$('engine').classList.remove('shake');return;}
+  sim.key=true;
+  const canRun=!fx.noStart||curTest==='charge';
+  if(!canRun){clicks(4);sim.run=false;return;}
+  crank(()=>{if(sim.mode==='off')return;sim.run=true;startIdle();bay().classList.add('running');if(fx.misfire){$('engine').classList.add('shake');bay().classList.add('sparking');}});
+}
+function tick(now){
+  if(job){
+    const fx=job.fx,e=(now-sim.t0)/1000;
+    let rT=0;
+    if(sim.run){
+      rT=750;
+      if(sim.mode==='drive')rT=e<.8?750:e<4?2300+Math.sin(e*3)*300+(fx.flare&&e>1.5&&e<2.3?1400:0):900;
+      if(sim.mode==='rev')rT=e<1.2?750:e<4?2500:750;
+      if(fx.misfire)rT+=(Math.random()-.5)*260;
+    }
+    sim.rpm+=(rT-sim.rpm)*.08;
+    // temp
+    let tT=sim.run?195:sim.temp;
+    if(sim.run&&fx.overheat){tT=(fx.overheat==='idle'&&sim.mode==='drive')?200:236;if(sim.fan)tT=200;}
+    if(!sim.run&&sim.temp>110)tT=sim.temp-0.0;
+    sim.temp+=(tT-sim.temp)*(sim.run?.012:0);
+    if(idle&&ac){idle.o1.frequency.setTargetAtTime(Math.max(30,sim.rpm/60*4),ac.currentTime,.05);idle.o2.frequency.setTargetAtTime(Math.max(15,sim.rpm/60*2),ac.currentTime,.05);}
+    drawDash();
+    bay().classList.toggle('steaming',!!fx.overheat&&sim.temp>226);
+  }
+  requestAnimationFrame(tick);
+}
+function drawDash(){
+  const fx=job.fx,d=$('dashSvg');
+  d.classList.toggle('off',!sim.key);
+  d.classList.toggle('dim',sim.key&&!!fx.noStart&&!sim.run);
+  $('tachNeedle').setAttribute('transform','rotate('+(-120+Math.min(8000,Math.max(0,sim.rpm))/1000*30)+')');
+  const tp=Math.max(100,Math.min(260,sim.temp));
+  $('tempNeedle').setAttribute('transform','rotate('+(-60+(tp-100)/160*120)+')');
+  $('tempTxt').textContent=sim.key?Math.round(sim.temp)+'°F':'—°F';
+  const v=!sim.key?null:sim.run?(fx.von??14.2):(fx.voff??12.6);
+  $('lcdVolts').textContent=v==null?'--.- V':(v+(sim.run?(Math.random()-.5)*.06:0)).toFixed(1)+' V';
+  $('lcdState').textContent=!sim.key?'KEY OFF':sim.run?(sim.mode==='drive'?'DRIVING · '+Math.round(sim.rpm)+' RPM':'RUNNING · '+Math.round(sim.rpm)+' RPM'):'KEY ON · ENGINE OFF';
+  const on=(id,c,b)=>{const el=$(id);el.setAttribute('fill',c?b:'#2a2e33');if(id==='wlTemp')el.setAttribute('stroke',c?b:'#2a2e33');};
+  on('wlCel',sim.key&&(!sim.run||fx.cel),'#ffb020');
+  $('wlCel').classList.toggle('blink',sim.run&&fx.cel==='flash');
+  on('wlBat',sim.key&&(!sim.run||fx.batLight),'#ff3b30');
+  on('wlOil',sim.key&&!sim.run,'#ff3b30');
+  on('wlTemp',sim.key&&sim.temp>230,'#ff3b30');
+}
+requestAnimationFrame(tick);
+
+/* ================= GAME FLOW ================= */
+function startShift(){audio();shift={jobs:shuffle(CASES).slice(0,JOBS_PER_SHIFT),idx:0,score:0,stars:0,results:[]};show('game');loadJob();}
+
+function loadJob(){
+  if(job)setEngine('off');
+  job=shift.jobs[shift.idx];used=0;ran={};state='testing';
+  job.order=shuffle(job.opts.map((t,i)=>({t,i})));
+  sim.temp=110;sim.rpm=0;sim.fan=false;sim.key=false;sim.run=false;
+  $('sJob').textContent=(shift.idx+1)+'/'+JOBS_PER_SHIFT;
+  $('tNum').textContent='WORK ORDER #'+(4100+Math.floor(Math.random()*800))+' · '+job.name;
+  $('tVeh').textContent=job.veh;
+  $('tMeta').textContent=job.miles.toLocaleString()+' miles';
+  $('tComplaint').textContent=job.complaint;
+  $('log').innerHTML='<div class="empty">&gt; No readings yet.</div>';
+  $('workArea').classList.remove('hidden');$('diagArea').classList.add('hidden');$('resultArea').classList.add('hidden');
+  bay().classList.remove('running','smoking','dripping','steaming','sparking','probing');
+  $('fanBlades').classList.remove('spin');$('engine').classList.remove('shake');
+  const low=job.fx.lowCoolant;$('coolant').setAttribute('y',low?199:170);$('coolant').setAttribute('height',low?9:38);
+  $('hint').classList.remove('hidden');
+  renderCabin();updateClock();updateStats();
+}
+
+function canRun(id){return state==='testing'&&!ran[id]&&used+T(id).min<=BUDGET;}
+function renderCabin(){
+  $('cabin').innerHTML=CABIN.map(id=>{const t=T(id);return '<button class="cbtn" '+(canRun(id)?'':'disabled')+' onclick="runTest(\''+id+'\')">'+t.name+'<span class="t">'+(ran[id]?'✓ done':t.min+' min')+'</span></button>';}).join('');
+}
+
+/* ---------- close-ups ---------- */
+function closeup(key){
+  const fx=job.fx,W='<svg viewBox="0 0 320 140" xmlns="http://www.w3.org/2000/svg">',E='</svg>';
+  const tag=(x,y,t,c='#f5c518')=>'<g><rect x="'+x+'" y="'+y+'" width="'+(t.length*6.4+12)+'" height="18" rx="4" fill="#0b0d10" stroke="'+c+'"/><text x="'+(x+6)+'" y="'+(y+13)+'" style="font:600 10px \'JetBrains Mono\';fill:'+c+'">'+t+'</text></g>';
+  switch(key){
+  case 'battery':{
+    const v=ran.battv?(fx.voff??12.6).toFixed(1)+' V':'?? V';
+    return W+'<rect x="70" y="40" width="130" height="86" rx="8" fill="#1b1d20" stroke="#555"/><rect x="70" y="40" width="130" height="18" rx="6" fill="#2d3136"/>'+
+    '<rect x="84" y="28" width="22" height="14" rx="3" fill="#c0392b"/><rect x="164" y="28" width="22" height="14" rx="3" fill="#222" stroke="#777"/>'+
+    '<rect x="90" y="74" width="90" height="22" rx="3" fill="#f5c518"/><text x="135" y="89" text-anchor="middle" style="font:700 11px \'JetBrains Mono\';fill:#111">12V · 650 CCA</text>'+
+    '<rect x="150" y="104" width="44" height="14" rx="2" fill="#e9e9e9"/><text x="172" y="114" text-anchor="middle" style="font:600 8px \'JetBrains Mono\';fill:#111">MFG '+(fx.batDate||'2023')+'</text>'+
+    '<path d="M95 28 C 95 6, 230 6, 246 44" stroke="#e74c3c" stroke-width="3" fill="none"/><path d="M175 28 C 180 14, 236 18, 256 44" stroke="#ddd" stroke-width="3" fill="none"/>'+
+    '<rect x="226" y="44" width="70" height="86" rx="8" fill="#e8b800" stroke="#8a6d00"/><rect x="234" y="52" width="54" height="28" rx="3" fill="#c9d3b6"/><text x="261" y="71" text-anchor="middle" style="font:700 13px \'JetBrains Mono\';fill:#1b2410">'+v+'</text><circle cx="261" cy="105" r="14" fill="#333"/><line x1="261" y1="105" x2="270" y2="96" stroke="#ddd" stroke-width="3"/>'+E;}
+  case 'wheels':{
+    const pad=fx.pad??7,known=ran.brakes,w=Math.max(3,pad*4);
+    return W+'<circle cx="110" cy="72" r="60" fill="url(#cRotor)"/><circle cx="110" cy="72" r="60" fill="none" stroke="#666" stroke-width="2"/>'+
+    (known&&fx.hotspots?'<circle cx="80" cy="50" r="10" fill="#3d6fd1" opacity=".45"/><circle cx="140" cy="100" r="9" fill="#3d6fd1" opacity=".45"/>':'')+
+    '<circle cx="110" cy="72" r="24" fill="#3a3f46" stroke="#222" stroke-width="2"/>'+[0,72,144,216,288].map(a=>{const r=a*Math.PI/180;return '<circle cx="'+(110+Math.cos(r)*13)+'" cy="'+(72+Math.sin(r)*13)+'" r="3.5" fill="#bbb"/>';}).join('')+
+    '<path d="M150 20 Q 186 72 150 124 L 166 128 Q 206 72 166 16 Z" fill="#c0392b" stroke="#7d1913" stroke-width="2"/><text x="176" y="76" style="font:700 9px sans-serif;fill:#fff" transform="rotate(90 176 76)">BRAKE</text>'+
+    '<g transform="translate(222,16)"><text x="0" y="0" style="font:600 10px \'JetBrains Mono\';fill:#cfd3d8">PAD</text><rect x="0" y="8" width="40" height="60" rx="3" fill="#555c65"/><rect x="40" y="8" width="'+(known?w:20)+'" height="60" fill="'+(known?(pad<=3?'#ff6b5e':'#8d6e4a'):'#3a3f46')+'"/>'+
+    '<text x="0" y="86" style="font:700 13px \'JetBrains Mono\';fill:'+(known&&pad<=3?'#ff6b5e':'#7dfc9a')+'">'+(known?pad+' mm':'? mm')+'</text>'+
+    (ran.runout?'<text x="0" y="102" style="font:600 10px \'JetBrains Mono\';fill:'+(fx.runout?'#ff6b5e':'#7dfc9a')+'">runout '+(fx.runout||'0.001"')+'</text>':'')+'</g>'+
+    '<defs><radialGradient id="cRotor"><stop offset=".4" stop-color="#8a9199"/><stop offset="1" stop-color="#4d535b"/></radialGradient></defs>'+E;}
+  case 'coils':{
+    const moved=ran.coil&&fx.misfire;
+    return W+[1,2,3,4].map(n=>{const x=30+(n-1)*72,hot=moved&&n===4,src=moved&&n===2;return '<rect x="'+x+'" y="22" width="44" height="90" rx="8" fill="#161616" stroke="'+(hot?'#ff6b5e':src?'#f5c518':'#444')+'" stroke-width="'+(hot||src?3:1)+'"/><rect x="'+(x+8)+'" y="28" width="28" height="14" rx="2" fill="#6c727a"/><text x="'+(x+22)+'" y="80" text-anchor="middle" style="font:700 18px \'JetBrains Mono\';fill:#9aa1ab">'+n+'</text>';}).join('')+
+    (moved?'<path d="M120 126 Q 192 146 264 126" stroke="#f5c518" stroke-width="2" fill="none" marker-end="url(#ar)"/><text x="160" y="137" text-anchor="middle" style="font:600 9px \'JetBrains Mono\';fill:#f5c518">coil 2 → cyl 4</text><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8z" fill="#f5c518"/></marker></defs>':'')+E;}
+  case 'reservoir':case 'radiator':{
+    const low=fx.lowCoolant,psi=ran.pressure?(fx.psi||'16 psi steady'):null;
+    let s=W+'<rect x="40" y="18" width="80" height="108" rx="12" fill="rgba(230,240,245,.12)" stroke="#9fb3bd" stroke-width="2"/><rect x="44" y="'+(low?100:48)+'" width="72" height="'+(low?22:74)+'" rx="8" fill="#ff5fa8" opacity=".8"/>'+
+      '<line x1="110" y1="44" x2="128" y2="44" stroke="#fff"/><text x="132" y="47" style="font:600 9px sans-serif;fill:#ddd">MAX</text><line x1="110" y1="96" x2="128" y2="96" stroke="#fff"/><text x="132" y="99" style="font:600 9px sans-serif;fill:#ddd">MIN</text>';
+    if(key==='radiator'){
+      const relay=ran.fan&&fx.fanDead;
+      s=W+'<circle cx="90" cy="70" r="54" fill="#121417" stroke="#3a3f46" stroke-width="4"/>'+[0,90,180,270].map(a=>'<path transform="rotate('+a+' 90 70)" d="M90 70 C 80 46, 88 26, 104 24 C 104 44, 100 58, 90 70Z" fill="#555c65"/>').join('')+'<circle cx="90" cy="70" r="10" fill="#2a2e33"/>'+
+       '<rect x="190" y="40" width="44" height="44" rx="5" fill="'+(relay?'#2f6b45':'#222')+'" stroke="#555"/><text x="212" y="66" text-anchor="middle" style="font:700 9px \'JetBrains Mono\';fill:#ddd">RELAY</text>'+
+       (relay?tag(176,92,'known-good swap','#7dfc9a'):'')+(psi?tag(176,116,psi,psi.includes('8')?'#ff6b5e':'#7dfc9a'):'');
+    } else if(psi) s+='<g transform="translate(200,30)"><circle cx="40" cy="40" r="36" fill="#eee" stroke="#555" stroke-width="3"/><line x1="40" y1="40" x2="'+(fx.leak?24:60)+'" y2="'+(fx.leak?22:20)+'" stroke="#c0392b" stroke-width="3"/><text x="40" y="66" text-anchor="middle" style="font:700 9px sans-serif;fill:#111">PSI</text></g>'+tag(176,114,psi,fx.leak?'#ff6b5e':'#7dfc9a');
+    return s+E;}
+  case 'intake':{
+    const cracked=ran.smoke&&fx.smoke;
+    return W+'<rect x="30" y="70" width="200" height="44" rx="10" fill="#26292e"/>'+[0,1,2,3].map(i=>'<rect x="'+(44+i*46)+'" y="76" width="32" height="32" rx="6" fill="#3a3f46"/>').join('')+
+     '<path d="M40 70 C 30 20, 200 10, 250 40 L 270 70" stroke="#121212" stroke-width="12" fill="none" stroke-linecap="round"/>'+
+     (cracked?'<path d="M150 22 l6 6 l-5 4 l7 5" stroke="#f5c518" stroke-width="2.5" fill="none"/>'+[0,1,2].map(i=>'<circle cx="'+(158+i*6)+'" cy="'+(12-i*4)+'" r="'+(7+i*3)+'" fill="#ddd" opacity="'+(.7-i*.2)+'"/>').join('')+tag(196,96,'CRACK FOUND','#ff6b5e'):tag(196,96,ran.smoke?'sealed':'not tested'))+E;}
+  case 'master':{
+    return W+'<rect x="70" y="70" width="180" height="40" rx="8" fill="url(#cm)"/><rect x="100" y="24" width="120" height="52" rx="6" fill="#e2dcbf" opacity=".9"/><rect x="104" y="'+(ran.fluid?34:34)+'" width="112" height="38" rx="4" fill="'+(fx.darkFluid&&ran.fluid?'#5a3a12':'#c19637')+'" opacity=".9"/><circle cx="160" cy="24" r="12" fill="#f5c518" stroke="#9c7c00"/><text x="160" y="28" text-anchor="middle" style="font:700 7px sans-serif;fill:#111">DOT 3</text><defs><linearGradient id="cm"><stop offset="0" stop-color="#9aa2ab"/><stop offset="1" stop-color="#4b5158"/></linearGradient></defs>'+(ran.pedal?tag(10,116,fx.darkFluid?'pedal sinks':'pedal holds',fx.darkFluid?'#ff6b5e':'#7dfc9a'):'')+E;}
+  case 'fuse':{
+    const found=ran.draw&&fx.fuse;
+    let s=W+'<rect x="40" y="14" width="240" height="112" rx="10" fill="#1d1f22" stroke="#444"/>';
+    for(let r=0;r<3;r++)for(let c=0;c<8;c++){const x=56+c*27,y=26+r*32,pulled=found&&r===1&&c===5;s+='<rect x="'+x+'" y="'+y+'" width="18" height="22" rx="2" fill="'+(pulled?'#0b0d10':['#e74c3c','#3498db','#f1c40f','#ecf0f1','#2ecc71'][(r*8+c)%5])+'" stroke="'+(pulled?'#f5c518':'none')+'" stroke-dasharray="3 2"/>';}
+    return s+(found?tag(150,104,'420 → 28 mA','#7dfc9a'):'')+E;}
+  case 'alt':{
+    const v=ran.charge?(fx.von??14.2).toFixed(1)+' V':null;
+    return W+'<path d="M90 70 L200 40 L260 70 L200 100 Z" stroke="#0a0a0a" stroke-width="8" fill="none" stroke-linejoin="round"/><circle cx="90" cy="70" r="46" fill="url(#cm2)" stroke="#2c2f33" stroke-width="3"/>'+[-16,-6,4,14].map(y=>'<line x1="62" y1="'+(70+y)+'" x2="118" y2="'+(70+y)+'" stroke="#2c2f33" stroke-width="3"/>').join('')+'<circle cx="200" cy="70" r="30" fill="#3b3f45" stroke="#222" stroke-width="3"/><defs><radialGradient id="cm2"><stop offset="0" stop-color="#b3bac2"/><stop offset="1" stop-color="#5d646d"/></radialGradient></defs>'+(v?tag(230,110,v,(fx.von??14.2)<13?'#ff6b5e':'#7dfc9a'):'')+E;}
+  case 'fluids':
+    return W+'<rect x="60" y="64" width="200" height="8" rx="4" fill="#c9ced4"/><circle cx="56" cy="68" r="12" fill="#f5c518"/><rect x="200" y="62" width="50" height="12" fill="#8a6a1c" opacity=".85"/><text x="160" y="104" text-anchor="middle" style="font:600 10px \'JetBrains Mono\';fill:#cfd3d8">'+(ran.fluid?'oil level: FULL':'pull the dipstick')+'</text>'+E;
+  }
+  return '';
+}
+
+function openSheet(key){
+  if(state!=='testing'||busy)return;
+  const p=PARTS[key];$('hint').classList.add('hidden');beep(1400,.04);
+  document.querySelectorAll('.hs').forEach(g=>g.classList.toggle('glow',g.dataset.hs===key));
+  $('sheet').innerHTML='<h3>'+p.name+'</h3><p>'+p.desc+'</p><div class="closeup">'+closeup(key)+'</div>'+p.tests.map(id=>{const t=T(id);return '<button class="sbtn" '+(canRun(id)?'':'disabled')+' onclick="closeSheet();runTest(\''+id+'\')"><span>'+t.name+'</span><span class="t">'+(ran[id]?'✓ done':t.min+' min')+'</span></button>';}).join('')+'<button class="ghost" style="margin-top:10px" onclick="closeSheet()">Close</button>';
+  $('sheet').dataset.part=key;
+  $('sheet').classList.remove('hidden');$('sheetBg').classList.remove('hidden');
+}
+function closeSheet(){$('sheet').classList.add('hidden');$('sheetBg').classList.add('hidden');document.querySelectorAll('.hs').forEach(g=>g.classList.remove('glow'));}
+
+/* ---------- effects ---------- */
+let curTest=null,fxTimers=[];
+function later(f,ms){fxTimers.push(setTimeout(f,ms));}
+function clearFx(){fxTimers.forEach(clearTimeout);fxTimers=[];const b=bay();b.classList.remove('smoking','dripping','probing');$('fanBlades').classList.remove('spin');sim.fan=false;stopFan();document.querySelectorAll('#bay .glow').forEach(e=>e.classList.remove('glow'));}
+function playFx(id){
+  curTest=id;const b=bay(),fx=job.fx;
+  const glow=sel=>{const el=$(sel);if(el)el.classList.add('glow');};
+  setEngine(T(id).eng==='off'?'off':T(id).eng);
+  switch(id){
+    case 'battv':case 'load':case 'draw':glow(id==='draw'?'fuse':'battery');b.classList.add('probing');break;
+    case 'charge':glow('alt');b.classList.add('probing');break;
+    case 'coil':{const a=$('coil2'),c=$('coil4');[a,c].forEach(el=>{el.classList.remove('flash');void el.getBBox();el.classList.add('flash');});break;}
+    case 'smoke':glow('intake');if(fx.smoke)later(()=>b.classList.add('smoking'),700);break;
+    case 'pressure':glow('reservoir');if(fx.leak)later(()=>b.classList.add('dripping'),700);break;
+    case 'fan':glow('radiator');
+      sim.temp=Math.max(sim.temp,fx.overheat?226:200);
+      const spin=()=>{$('fanBlades').classList.add('spin');sim.fan=true;startFan();};
+      if(fx.fanDead)later(()=>{clicks(1);spin();},2200);else later(spin,600);break;
+    case 'fluid':glow('reservoir');glow('master');break;
+    case 'pedal':glow('master');break;
+    case 'brakes':case 'runout':glow('wheelL');glow('wheelR');break;
+    case 'visual':glow('engine');break;
+  }
+}
+
+function bigReading(txt){const m=txt.match(/(\d+(?:\.\d+)?)\s?(V|mA|psi|")/);return m?m[1]+(m[2]==='"'?'"':' '+m[2]):null;}
+
+/* ---------- scan tool graphs ---------- */
+function liveGraph(){
+  const k=job.fx.graph||'normal';
+  const ax='<rect x="0" y="0" width="300" height="110" fill="#06120a"/>'+[22,44,66,88].map(y=>'<line x1="0" y1="'+y+'" x2="300" y2="'+y+'" stroke="#123a20" stroke-width="1"/>').join('');
+  if(k==='misfire'){
+    const v=[0,48,1,0,0,0];
+    return '<svg viewBox="0 0 300 120">'+ax+v.map((n,i)=>{const h=Math.max(2,n*1.8);return '<rect class="grow" style="animation-delay:'+(i*.1)+'s" x="'+(22+i*46)+'" y="'+(100-h)+'" width="28" height="'+h+'" fill="'+(n>10?'#ff6b5e':'#7dfc9a')+'"/><text x="'+(36+i*46)+'" y="118" text-anchor="middle" style="font:600 9px \'JetBrains Mono\';fill:#7dfc9a">CYL'+(i+1)+'</text>';}).join('')+'<text x="6" y="12" style="font:600 9px \'JetBrains Mono\';fill:#b6ffca">MISFIRE COUNT</text></svg>';
+  }
+  const pts=(f)=>{let s='';for(let i=0;i<=60;i++){const x=i*5;s+=x+','+f(i/60).toFixed(1)+' ';}return s;};
+  const rpm=t=>{const r=t<.35?750:t<.55?750+(t-.35)/.2*1750:2500;return 100-r/3000*90;};
+  let line2,lab2,col2='#ffd84d';
+  if(k==='lean'){line2=t=>{const tr=t<.35?22:t<.55?22-(t-.35)/.2*18:4;return 100-(tr+10)/40*90+(Math.random()-.5)*2;};lab2='FUEL TRIM +22% → +4%';}
+  else if(k==='cvt'){line2=t=>100-(180+t*60-150)/120*90;lab2='CVT FLUID TEMP 180→240°F';col2='#ff6b5e';}
+  else {line2=t=>100-(0+10)/40*90+(Math.random()-.5)*3;lab2='FUEL TRIM ±2%';}
+  return '<svg viewBox="0 0 300 120">'+ax+'<polyline class="draw" points="'+pts(rpm)+'" fill="none" stroke="#7dfc9a" stroke-width="2"/><polyline class="draw" style="animation-delay:.2s" points="'+pts(line2)+'" fill="none" stroke="'+col2+'" stroke-width="2"/><text x="6" y="12" style="font:600 9px \'JetBrains Mono\';fill:#7dfc9a">RPM</text><text x="294" y="118" text-anchor="end" style="font:600 9px \'JetBrains Mono\';fill:'+col2+'">'+lab2+'</text></svg>';
+}
+function scanScreen(res){
+  const m=res.match(/^(P[0-9A-F]{4})\s*—\s*(.*)$/);
+  return m?'<div style="margin-bottom:6px;color:#b6ffca">DTC (1) · CONFIRMED</div><span class="code">'+m[1]+'</span>'+m[2]:res;
+}
+
+function runTest(id){
+  if(!canRun(id)||busy)return;
+  busy=true;audio();clearFx();const t=T(id);used+=t.min;ran[id]=true;
+  const res=job.r[id]||NORMAL[id]||'Nothing notable.';
+  playFx(id);
+  const tool=$('tool');tool.className='tool t-'+t.tool;
+  tool.innerHTML='<div class="tname">'+TOOLNAME[t.tool]+'</div><div style="font-size:14px;opacity:.85">'+t.name+' · '+job.veh+'</div><div class="screen" id="scr"><div>&gt; '+(t.tool==='scan'?'Linking to ECU…':'Running '+t.name.toLowerCase()+'…')+'</div><div class="prog go"><i></i></div></div>';
+  $('toolBg').classList.remove('hidden');
+  later(()=>{
+    beep();
+    const big=['meter','load'].includes(t.tool)||id==='pressure'||id==='runout'?bigReading(res):null;
+    let body=res;
+    if(id==='live')body=liveGraph()+res;
+    else if(id==='scan')body=scanScreen(res);
+    $('scr').innerHTML=(big?'<div class="big">'+big+'</div>':'')+'<div>'+body+'</div>';
+    tool.insertAdjacentHTML('beforeend','<button class="ghost" onclick="closeTool()">Log it</button>');
+  },1500);
+  const log=$('log');if(log.querySelector('.empty'))log.innerHTML='';
+  const e=document.createElement('div');e.className='e';
+  e.innerHTML='<div class="h">&gt; '+t.name.toUpperCase()+' <span style="color:#4f6b58">[+'+t.min+'m]</span></div>'+res;
+  log.prepend(e);
+  updateClock();renderCabin();
+}
+function closeTool(){
+  $('toolBg').classList.add('hidden');busy=false;clearFx();setEngine('off');
+  if(!TESTS.some(x=>canRun(x.id)))openDiagnosis(true);
+}
+
+function updateClock(){const p=Math.min(100,used/BUDGET*100),b=$('clockBar');b.style.width=p+'%';b.className=p>85?'bad':p>60?'warn':'';$('clockTxt').textContent=used+' min used';}
+function updateStats(){$('sScore').textContent=shift.score;$('sStars').textContent=shift.stars;}
+
+function openDiagnosis(forced){
+  state='diagnosing';
+  $('workArea').classList.add('hidden');$('diagArea').classList.remove('hidden');
+  $('backBtn').classList.toggle('hidden',!!forced);
+  $('opts').innerHTML=job.order.map(o=>'<button class="opt" data-i="'+o.i+'" onclick="diagnose('+o.i+')">'+o.t+'</button>').join('');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function closeDiagnosis(){state='testing';$('diagArea').classList.add('hidden');$('workArea').classList.remove('hidden');renderCabin();}
+function par(){return job.key.reduce((s,id)=>s+T(id).min,0);}
+
+function diagnose(i){
+  if(state!=='diagnosing')return;state='done';
+  const ok=i===job.ans,p=par();
+  document.querySelectorAll('.opt').forEach(b=>{const bi=+b.dataset.i;b.disabled=true;if(bi===job.ans)b.classList.add('right');else if(bi===i)b.classList.add('wrong');});
+  $('backBtn').classList.add('hidden');
+  ok?(beep(1300,.1),setTimeout(()=>beep(1900,.15),120)):beep(220,.35);
+  let stars=0,pts=-50;
+  if(ok){stars=used<=p+5?3:used<=40?2:1;pts=100+(BUDGET-used)*2;}
+  shift.score+=pts;shift.stars+=stars;career(ok,stars);shift.results.push({veh:job.veh,ok,stars,used,pts});updateStats();
+  $('rVerdict').textContent=ok?'Nailed it':'Comeback';$('rVerdict').className='verdict '+(ok?'ok':'no');
+  $('rStars').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
+  $('rPoints').textContent=(pts>0?'+':'')+pts+' pts · '+used+' min used · pro time '+p+' min';
+  $('rExplain').innerHTML=(ok?'':'<b>Actual problem:</b> '+job.opts[job.ans]+'<br><br>')+job.why;
+  $('rPath').innerHTML='<b>Pro path:</b> '+job.key.map(id=>T(id).name).join(' → ');
+  $('nextBtn').textContent=shift.idx+1>=JOBS_PER_SHIFT?'Finish shift':'Next job';
+  $('resultArea').classList.remove('hidden');
+  setTimeout(()=>$('resultArea').scrollIntoView({behavior:'smooth',block:'start'}),250);
+}
+function nextJob(){shift.idx++;if(shift.idx>=JOBS_PER_SHIFT)return endShift();loadJob();window.scrollTo(0,0);}
+function endShift(){
+  setEngine('off');show('end');
+  $('eStars').textContent=shift.stars+' / '+(JOBS_PER_SHIFT*3)+' ★';
+  const correct=shift.results.filter(r=>r.ok).length,best=loadBest();
+  let line=shift.score+' points · '+correct+'/'+JOBS_PER_SHIFT+' correct';
+  if(shift.score>best){saveBest(shift.score);line+=' · New best!';}else if(best)line+=' · Best: '+best;
+  $('eLine').textContent=line;
+  $('eTable').innerHTML=shift.results.map(r=>'<tr><td>'+r.veh+'</td><td>'+(r.ok?'✅':'❌')+'</td><td style="color:var(--yellow)">'+'★'.repeat(r.stars)+'</td><td style="font-family:JetBrains Mono">'+r.used+'m</td><td style="font-family:JetBrains Mono;text-align:right">'+(r.pts>0?'+':'')+r.pts+'</td></tr>').join('');
+  const b=loadBest();$('best').textContent=b?'Best shift: '+b+' pts':'';
+}
+</script>
+</body>
+</html>

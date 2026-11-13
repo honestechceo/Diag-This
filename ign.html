@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check Engine: Ignition Circuit Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#121417;--panel:#1c1f23;--panel2:#24282d;--line:#33383f;--text:#e9ebee;--muted:#9aa1ab;--yellow:#f5c518;--green:#7dfc9a;--red:#ff5a4e}
+*{box-sizing:border-box}
+html,body{margin:0;background:radial-gradient(ellipse at top,#1d2228,#0e1012 60%);background-attachment:fixed;color:var(--text);font-family:Barlow,system-ui,sans-serif;font-size:16px}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:760px;margin:0 auto;padding:10px 10px 150px}
+h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em}
+.hazard{height:6px;background:repeating-linear-gradient(-45deg,var(--yellow) 0 12px,#111 12px 24px);border-radius:3px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin:10px 0;gap:8px}
+.brand{font-family:"Barlow Condensed";font-weight:700;font-size:22px;text-transform:uppercase;line-height:.95}
+.brand span{color:var(--yellow)}
+.stats{display:flex;gap:6px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px;text-align:center;min-width:54px}
+.stat b{display:block;font-family:"JetBrains Mono";font-size:14px}
+.stat small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
+.ticket{border-left:5px solid var(--yellow)}
+.veh{font-family:"Barlow Condensed";font-size:21px;font-weight:700}
+.meta{color:var(--muted);font-size:13px}
+.complaint{font-style:italic;margin-top:4px}
+.tip{background:#1e2a22;border:1px solid #2f5a3d;border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45;color:#cfe9d6;margin:8px 0}
+.tip b{color:#fff}
+.tip button{background:none;border:0;color:var(--green);font-weight:600;padding:0;margin-top:4px}
+
+.diagram{background:#0d1013;border:1px solid var(--line);border-radius:12px;padding:6px;position:relative}
+.diagram svg{width:100%;display:block}
+.leadbar{display:flex;gap:6px;margin-bottom:6px}
+.lead{flex:1;border-radius:9px;padding:9px 6px;font-weight:700;font-size:14px;border:2px solid transparent;background:var(--panel2);color:var(--text)}
+.lead.red.on{border-color:#ff4a3d;background:#3a1714}
+.lead.blk.on{border-color:#d9dde2;background:#2c3036}
+.lead .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.tp{cursor:pointer}
+.tp circle.hit{fill:transparent}
+.tp circle.ring{fill:#0d1013;stroke:#f5c518;stroke-width:2}
+.tp:hover circle.ring{fill:#3b3210}
+.tpl{font:600 8.5px "JetBrains Mono";fill:#cfd3d8;pointer-events:none}
+.wire{fill:none;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.cmp{fill:#1a1e23;stroke:#8c949d;stroke-width:1.6}
+.cl{font:700 10px "JetBrains Mono";fill:#e9ebee}
+.cs{font:500 8px "JetBrains Mono";fill:#9aa1ab}
+#fanRotor{transform-box:fill-box;transform-origin:center}
+.spinFast{animation:spin .18s linear infinite}
+.spinSlow{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.clickfx{opacity:0}
+.clickfx.show{animation:pop .5s ease-out}
+@keyframes pop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-12px)}}
+.chips{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;pointer-events:none}
+.chip{font:700 10px "JetBrains Mono";padding:3px 7px;border-radius:6px;background:#2a2e33;color:#9aa1ab;border:1px solid #3a3f46}
+.chip.on{background:#3a3010;color:var(--yellow);border-color:#7a6410}
+.chip.go{background:#173322;color:var(--green);border-color:#2f6b45}
+
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.act{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 4px;font-size:13px;font-weight:600;line-height:1.2}
+.act small{display:block;font-family:"JetBrains Mono";color:var(--yellow);font-size:10.5px;font-weight:500;margin-top:2px}
+.act.on{background:var(--yellow);color:#111}.act.on small{color:#111}
+.act.primary{background:var(--yellow);color:#111;border-color:var(--yellow)}
+.act:disabled{opacity:.4}
+
+.log{background:#0b0e0c;border:2px solid #2c3a30;border-radius:10px;padding:8px 10px;font-family:"JetBrains Mono";font-size:12px;color:var(--green);max-height:220px;overflow:auto}
+.log div{padding:4px 0;border-bottom:1px dashed #22302a}.log div:last-child{border:0}
+.log .h{color:var(--yellow)}
+.log .empty{color:#4f6b58;border:0}
+
+/* DMM dock */
+.dmm{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 10px 12px;background:linear-gradient(transparent,rgba(0,0,0,.6) 30%)}
+.dmmIn{max-width:760px;margin:0 auto;background:linear-gradient(#f2c300,#d4a600);border:2px solid #8a6d00;border-radius:16px;padding:8px 10px;display:flex;gap:10px;align-items:center;color:#111;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.lcd{flex:1;background:#c9d3b6;border:3px solid #2b2b2b;border-radius:8px;padding:4px 10px;font-family:"JetBrains Mono";color:#18210d;min-width:0}
+.lcd .val{font-size:30px;font-weight:700;line-height:1.1;text-align:right;white-space:nowrap}
+.lcd .sub{font-size:10px;display:flex;justify-content:space-between;gap:6px;white-space:nowrap;overflow:hidden}
+.modes{display:flex;flex-direction:column;gap:4px}
+.mode{background:#2b2b2b;color:#f2c300;border:0;border-radius:7px;padding:7px 9px;font:700 12px "JetBrains Mono"}
+.mode.on{background:#111;color:#fff;outline:2px solid #fff}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;display:flex;align-items:flex-end;justify-content:center;padding:10px}
+.modal{width:100%;max-width:520px;max-height:88vh;overflow:auto;border-radius:16px;padding:14px;background:var(--panel);border:1px solid var(--line);animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.modal h3{font-size:22px;text-transform:uppercase}
+.modal p{color:var(--muted);font-size:14px;margin:4px 0 10px;line-height:1.45}
+.scan{background:linear-gradient(#2f3a46,#1d242c);border:2px solid #4a5867}
+.scr{background:#0b1a10;border:3px solid #000;border-radius:8px;padding:10px;font-family:"JetBrains Mono";color:var(--green);font-size:13px;line-height:1.6;margin:8px 0}
+.scr .row{display:flex;justify-content:space-between;border-bottom:1px dashed #1d3a27}
+.code{display:inline-block;background:#173322;border:1px solid #2f6b45;border-radius:4px;padding:0 6px;margin-right:6px;color:#b6ffca;font-weight:700}
+.mbtn{display:flex;justify-content:space-between;align-items:center;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:13px 14px;font-size:15px;margin-top:8px;text-align:left}
+.mbtn small{font-family:"JetBrains Mono";color:var(--yellow);font-size:11px}
+.mbtn.big{justify-content:center;background:var(--yellow);color:#111;font-weight:700;font-family:"Barlow Condensed";font-size:20px;text-transform:uppercase;border:0}
+.ghost{width:100%;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;margin-top:10px}
+.verdict{font-family:"Barlow Condensed";font-size:30px;font-weight:700;text-transform:uppercase}
+.verdict.ok{color:var(--green)}.verdict.no{color:var(--red)}
+.stars{font-size:26px;letter-spacing:4px;color:var(--yellow)}
+.res{font-size:14px;line-height:1.55;color:#d5d9de}
+.res td{padding:3px 0}
+.hidden{display:none!important}
+.wrap{padding-bottom:250px}
+.leadbar4{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.lead.sa.on{border-color:#f5d33a;background:#3a3410}
+.lead.sb.on{border-color:#3fd0ff;background:#10303a}
+.dock{max-width:760px;margin:0 auto;background:linear-gradient(#2a3038,#171b20);border:2px solid #4a5867;border-radius:16px;padding:6px 8px 8px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.tabs{display:flex;gap:6px;margin-bottom:6px}
+.tab{flex:1;background:#111418;color:#9aa1ab;border:1px solid #3a3f46;border-radius:8px;padding:6px;font:700 12px "JetBrains Mono";text-transform:uppercase}
+.tab.on{background:#f5c518;color:#111;border-color:#f5c518}
+.dock .dmmIn{background:linear-gradient(#f2c300,#d4a600);border:2px solid #8a6d00;border-radius:12px;padding:6px 8px;box-shadow:none}
+.scopeIn{background:#05090c;border:3px solid #000;border-radius:10px;padding:4px 6px;font-family:"JetBrains Mono"}
+.scopeIn svg{width:100%;height:120px;display:block}
+.scopeHead,.scopeFoot{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:#9aa1ab;white-space:nowrap;overflow:hidden}
+.scopeHead span{overflow:hidden;text-overflow:ellipsis}
+.bars{display:flex;gap:10px;align-items:flex-end;height:70px;margin:6px 0}
+.bars div{flex:1;background:#7dfc9a;border-radius:3px 3px 0 0;position:relative;min-height:2px}
+.bars div.hot{background:#ff5a4e}
+.bars span{position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-size:10px;color:#7dfc9a}
+.back{display:inline-block;color:#f5c518;text-decoration:none;font:600 13px 'JetBrains Mono',monospace;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hazard"></div>
+  <a class="back" href="index.html">← Garage</a>
+  <div class="topbar">
+    <div class="brand">Ignition<br><span>Lab</span></div>
+    <div class="stats">
+      <div class="stat"><b id="sTime">0</b><small>Minutes</small></div>
+      <div class="stat"><b id="sParts">$0</b><small>Parts</small></div>
+      <div class="stat"><b id="sJobs">0</b><small>Fixed</small></div>
+    </div>
+  </div>
+
+  <div class="card ticket">
+    <div class="meta" id="tNum"></div>
+    <div class="veh" id="tVeh"></div>
+    <div class="complaint" id="tComplaint"></div>
+  </div>
+
+  <div class="tip" id="tip">
+    <b>How it works:</b> Coil-on-plug, 4 cylinders, firing order 1-3-4-2. Each coil has <b>pin 1</b> power, <b>pin 2</b> ground and <b>pin 3</b> the IGT trigger from the ECM. Start the engine, then put <b>Scope A</b> and <b>Scope B</b> on test points to see the waveforms. The <b>kV</b> points are secondary pickups clipped on each coil. The meter only shows averages, so the scope will tell you more.<br>
+    <button onclick="document.getElementById('tip').classList.add('hidden')">Got it ✕</button>
+  </div>
+
+  <div class="leadbar4">
+    <button class="lead red on" id="L_red" onclick="setLead('red')"><span class="dot" style="background:#ff4a3d"></span>Meter red</button>
+    <button class="lead blk" id="L_blk" onclick="setLead('blk')"><span class="dot" style="background:#e6e6e6"></span>Meter black</button>
+    <button class="lead sa" id="L_A" onclick="setLead('A')"><span class="dot" style="background:#f5d33a"></span>Scope A</button>
+    <button class="lead sb" id="L_B" onclick="setLead('B')"><span class="dot" style="background:#3fd0ff"></span>Scope B</button>
+  </div>
+
+  <div class="diagram">
+    <div class="chips"><div class="chip" id="chipEng">ENGINE OFF</div></div>
+    <svg id="dia" viewBox="0 0 400 420" xmlns="http://www.w3.org/2000/svg">
+      <defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#161b20" stroke-width="1"/></pattern></defs>
+      <rect width="400" height="420" fill="url(#grid)"/>
+      <g id="wires"></g>
+      <g id="parts"></g>
+      <g id="probes"></g>
+      <g id="tps"></g>
+    </svg>
+  </div>
+
+  <div class="actions">
+    <button class="act" id="bEng" onclick="engineBtn()">Key ON<small>free</small></button>
+    <button class="act" onclick="openScan()">Scan tool<small id="scanCost">2 min</small></button>
+    <button class="act" onclick="clearLeads()">Clear leads<small>free</small></button>
+    <button class="act" onclick="openTests()">Component tests<small>swap / plug / spark</small></button>
+    <button class="act" onclick="openRepair()">Repair<small>10 min + parts</small></button>
+    <button class="act primary" onclick="closeJob()">Close job<small>verify first!</small></button>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:18px;margin-bottom:6px">Tech notes</h3>
+    <div class="log" id="log"><div class="empty">&gt; Measurements and results show up here.</div></div>
+  </div>
+</div>
+
+<div class="dmm">
+  <div class="dock">
+    <div class="tabs"><button id="tabM" class="tab on" onclick="setTab('M')">Meter</button><button id="tabS" class="tab" onclick="setTab('S')">Scope</button></div>
+    <div id="meterPane" class="dmmIn">
+      <div class="lcd">
+        <div class="sub"><span>DC VOLTS · AVG</span><span id="dmmLeads">R: — · B: —</span></div>
+        <div class="val" id="dmmVal">-- . --</div>
+      </div>
+    </div>
+    <div id="scopePane" class="scopeIn hidden">
+      <div class="scopeHead"><span id="chA" style="color:#f5d33a">A: —</span><span id="chB" style="color:#3fd0ff">B: —</span></div>
+      <svg id="scope" viewBox="0 0 300 120" preserveAspectRatio="none"></svg>
+      <div class="scopeFoot"><span>2 ms/div · each channel on its own firing</span><span id="scaleTxt"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="modalBg" class="modal-bg hidden" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
+
+<script>
+function career(fixed,stars){try{const c=JSON.parse(localStorage.getItem('ce_career')||'{}');c.jobs=(c.jobs||0)+1;c.fixed=(c.fixed||0)+(fixed?1:0);c.stars=(c.stars||0)+stars;localStorage.setItem('ce_career',JSON.stringify(c));}catch(e){}}
+
+/* ================= LAYOUT ================= */
+const CX={1:80,2:160,3:240,4:320};
+const WCOL={1:'#3d8bff',2:'#2fbf5b',3:'#c86bff',4:'#ff9a3d'};
+const ORD={1:0,3:1,4:2,2:3};
+const TP={
+ bat_p:{x:40,y:40,name:'Battery +',l:[-2,-12,'B+']},
+ bat_n:{x:40,y:112,name:'Battery −',l:[16,4,'B−']},
+ f7a:{x:125,y:75,name:'F7 in',l:[-4,-12,'A']},
+ f7b:{x:170,y:75,name:'F7 out',l:[4,-12,'B']},
+ g2:{x:378,y:168,name:'G2 eyelet',l:[0,-12,'']},
+ body:{x:378,y:214,name:'Body ground',l:[0,0,'']},
+};
+for(let n=1;n<=4;n++){const x=CX[n];
+ TP['c'+n+'p1']={x:x-14,y:172,name:'Coil '+n+' pin 1',l:[-8,-4,'1'],cyl:n};
+ TP['c'+n+'p2']={x:x+14,y:172,name:'Coil '+n+' pin 2',l:[9,-4,'2'],cyl:n};
+ TP['c'+n+'p3']={x:x,y:250,name:'Coil '+n+' pin 3 (IGT)',l:[-10,16,'3'],cyl:n};
+ TP['c'+n+'kv']={x:x,y:211,name:'Coil '+n+' kV',l:[0,0,''],cyl:n,kv:true};
+ TP['e'+n]={x:x,y:340,name:'ECM IGT'+n,l:[0,24,'IGT'+n],cyl:n};
+}
+function drawStatic(){
+  let w='';const W=(c,d,extra='')=>w+='<path class="wire" stroke="'+c+'" d="'+d+'" '+extra+'/>';
+  W('#e23b2e','M40 40 H60 V75 H78');
+  W('#e86fa3','M108 75 H125');
+  W('#e86fa3','M170 75 H200 V120');
+  W('#e86fa3','M66 120 H306');
+  W('#5a5f66','M94 142 H378 V168');
+  W('#5a5f66','M378 182 V214');
+  W('#5a5f66','M40 92 V112');
+  for(let n=1;n<=4;n++){const x=CX[n];
+    W('#e86fa3','M'+(x-14)+' 120 V172');
+    W('#5a5f66','M'+(x+14)+' 142 V172');
+    W(WCOL[n],'M'+x+' 250 V340');
+  }
+  $('wires').innerHTML=w+'<text x="206" y="104" class="cs">PNK · IGN COIL FEED</text><text x="290" y="137" class="cs">BLK</text>';
+  let p='';
+  p+='<rect x="18" y="46" width="44" height="40" rx="4" class="cmp"/><line x1="30" y1="58" x2="50" y2="58" stroke="#e9ebee" stroke-width="3"/><line x1="34" y1="66" x2="46" y2="66" stroke="#e9ebee" stroke-width="2"/><line x1="30" y1="74" x2="50" y2="74" stroke="#e9ebee" stroke-width="3"/><text x="40" y="100" text-anchor="middle" class="cs">BATTERY</text><g transform="translate(40,114)" stroke="#8c949d" stroke-width="2"><line x1="-10" y1="0" x2="10" y2="0"/><line x1="-6" y1="4" x2="6" y2="4"/><line x1="-2" y1="8" x2="2" y2="8"/></g>';
+  p+='<circle cx="80" cy="75" r="3" fill="#e9ebee"/><circle cx="106" cy="75" r="3" fill="#e9ebee"/><line id="ignBlade" x1="80" y1="75" x2="104" y2="62" stroke="#e9ebee" stroke-width="2.5"/><text x="93" y="95" text-anchor="middle" class="cs">IGN SW</text>';
+  p+='<rect x="125" y="65" width="45" height="20" rx="5" class="cmp"/><path d="M130 75 q8 -8 16 0 t16 0" stroke="#f5c518" stroke-width="2" fill="none"/><text x="147" y="58" text-anchor="middle" class="cl">F7 15A</text>';
+  p+='<g transform="translate(378,182)" stroke="#8c949d" stroke-width="2"><line x1="-12" y1="0" x2="12" y2="0"/><line x1="-7" y1="5" x2="7" y2="5"/><line x1="-3" y1="10" x2="3" y2="10"/></g><circle cx="378" cy="168" r="5" fill="none" stroke="#c9a46a" stroke-width="2"/><text x="362" y="172" text-anchor="end" class="cl">G2</text><text x="378" y="234" text-anchor="middle" class="cs">BODY</text>';
+  for(let n=1;n<=4;n++){const x=CX[n];
+    p+='<rect x="'+(x-26)+'" y="172" width="52" height="78" rx="6" class="cmp"/>';
+    p+='<path d="M'+(x-18)+' 186 h8 M'+(x-18)+' 192 h8 M'+(x-18)+' 198 h8 M'+(x-18)+' 204 h8" stroke="#8c949d" stroke-width="1.5"/>';
+    
+    p+='<text x="'+x+'" y="242" text-anchor="middle" class="cl">COIL '+n+'</text>';
+    p+='<text x="'+(x+12)+'" y="214" class="cs">kV</text>';
+  }
+  p+='<rect x="40" y="340" width="320" height="64" rx="8" class="cmp"/><text x="200" y="390" text-anchor="middle" class="cl">ECM · IGNITION DRIVERS</text>';
+  $('parts').innerHTML=p;
+}
+
+/* ================= FAULTS ================= */
+const FAULTS={
+ coil2:{complaint:'"Check engine light is flashing and it shakes at idle."',repair:'coil',
+  why:'Coil 2 had failed internally. Its primary side checked out: pin 1 had full voltage with a normal dip, pin 2 had a clean ground, and pin 3 got a normal IGT pulse. But the secondary pickup showed almost no firing line. Swapping coil 2 to cylinder 3 moved the misfire to P0303.'},
+ plug2:{complaint:'"Check engine light is flashing and it shakes at idle."',repair:'plug',
+  why:'Spark plug 2 was fouled. The coil was fine: swapping it didn\'t move the misfire, and the spark tester showed a strong spark. The secondary waveform gave it away: a low firing line (about 3–4 kV) and a long, low spark line, because the spark was leaking across the carbon on the plug instead of jumping the gap.'},
+ igt2:{complaint:'"Check engine light is flashing and it shakes at idle."',repair:'igt',
+  why:'The IGT trigger wire from ECM pin IGT2 to coil 2 pin 3 was open. The scope showed a normal 5 V square pulse at the ECM pin but a flat 0 V at coil 2 pin 3. The ECM also flagged P0352.'},
+ pwr2:{complaint:'"Check engine light is flashing and it shakes at idle."',repair:'conn',
+  why:'Coil 2\'s connector had a corroded pin 1 (power), causing high resistance. With the key on and no current flowing it read a perfect 12.4 V, which is why a static meter check misses it. On the scope under load, pin 1 sagged to about 7–8 V during dwell, while the other coils only dipped about 0.3 V. The weak primary current gave a weak spark.'},
+ gnd:{complaint:'"Runs rough and stumbles. Light flashes sometimes, worse when it\'s wet out."',repair:'ground',
+  why:'The shared coil ground G2 was corroded. Every coil\'s pin 2 jumped about 3 V during dwell, when it should be near 0. That stole voltage from all four coils, so every secondary firing line was weak and the misfires moved randomly between cylinders (P0300).'},
+ fuse:{complaint:'"It cranks but won\'t start."',repair:'fuse',
+  why:'Fuse F7 (the IGN coil feed) was blown, so no coil had power on pin 1. The IGT pulses were still there because the ECM has its own feed, so the trigger was fine but nothing was there to switch. Set P0351–P0354. On a real car, find out why it blew.'},
+};
+const REPAIRS=[
+ {id:'coil',name:'Replace ignition coil 2',cost:65},
+ {id:'plug',name:'Replace spark plug 2',cost:12},
+ {id:'igt',name:'Repair IGT2 wire (ECM → coil 2 pin 3)',cost:8},
+ {id:'conn',name:'Replace coil 2 connector pigtail',cost:15},
+ {id:'ground',name:'Clean & repair coil ground G2',cost:4},
+ {id:'fuse',name:'Replace fuse F7',cost:5},
+ {id:'allcoils',name:'Replace all 4 coils',cost:260},
+ {id:'ecm',name:'Replace ECM',cost:450},
+];
+const VEHICLES=['2012 Toyota Camry 2.5','2014 Honda Accord 2.4','2013 Hyundai Sonata 2.4','2011 Ford Escape 2.5','2015 Chevy Cruze 1.8','2010 Nissan Sentra 2.0'];
+const NAMES=['Angela','Ricky','Nadia','Carlos','Bev','Jordan'];
+
+/* ================= STATE ================= */
+let job,eng='off',leads={red:null,blk:'bat_n',A:null,B:null},active='red',tab='M',fixedCount=0;
+const $=id=>document.getElementById(id);
+
+function newJob(){
+  const ks=Object.keys(FAULTS),f=ks[Math.floor(Math.random()*ks.length)];
+  job={fault:f,orig:f,veh:VEHICLES[Math.floor(Math.random()*VEHICLES.length)],name:NAMES[Math.floor(Math.random()*NAMES.length)],time:0,parts:0,reads:0,repairs:[],scanned:false,seen:{}};
+  eng='off';leads={red:null,blk:'bat_n',A:null,B:null};active='red';
+  $('tNum').textContent='WORK ORDER #'+(6100+Math.floor(Math.random()*800))+' · '+job.name;
+  $('tVeh').textContent=job.veh;$('tComplaint').textContent=FAULTS[f].complaint;
+  $('log').innerHTML='<div class="empty">&gt; Measurements and results show up here.</div>';
+  setTab('M');render();
+}
+
+/* ================= MODEL ================= */
+function running(){return eng==='run'||eng==='crank';}
+function evt(n,trig){return 6+((ORD[n]-ORD[trig]+4)%4)*40;}
+function inDwell(n,t,trig){if(!running())return false;const e=evt(n,trig);return t>=e-3&&t<e;}
+function anyDwell(t,trig){for(let n=1;n<=4;n++)if(inDwell(n,t,trig))return true;return false;}
+function supply(){return eng==='run'?14.2:eng==='crank'?10.6:12.4;}
+function wave(tp,t,trig){
+  const f=job.fault,k=eng!=='off',Vb=supply();
+  const fuseOK=f!=='fuse';
+  if(tp==='bat_p')return Vb;
+  if(tp==='bat_n'||tp==='body')return 0;
+  if(tp==='f7a')return k?Vb:0;
+  if(tp==='f7b')return k&&fuseOK?Vb:0;
+  const gBump=(fuseOK&&anyDwell(t,trig))?(f==='gnd'?3.2:.12):0;
+  const gBase=f==='gnd'&&running()?.15:.01;
+  if(tp==='g2')return gBase+gBump*.97;
+  const P=TP[tp],n=P.cyl;
+  if(tp.endsWith('p1')){
+    if(!k||!fuseOK)return 0;
+    const drop=inDwell(n,t,trig)?((f==='pwr2'&&n===2)?6.8:.32):0;
+    return Vb-drop;
+  }
+  if(tp.endsWith('p2'))return gBase+gBump;
+  if(tp.startsWith('e'))return inDwell(n,t,trig)?4.8:0;
+  if(tp.endsWith('p3'))return (f==='igt2'&&n===2)?0:(inDwell(n,t,trig)?4.8:0);
+  if(P.kv)return kv(n,t,trig);
+  return 0;
+}
+let gndJit={1:5.5,2:5.5,3:5.5,4:5.5};
+function kv(n,t,trig){
+  const f=job.fault;
+  if(!running()||f==='fuse')return 0;
+  if(f==='igt2'&&n===2)return 0;
+  let F=9,S=1.6,D=1.5,A=2;
+  if(n===2&&f==='coil2'){F=1.4;S=0;D=0;A=.4;}
+  if(n===2&&f==='plug2'){F=3.6;S=.8;D=2.5;A=.5;}
+  if(n===2&&f==='pwr2'){F=5;S=1.2;D=.6;A=1;}
+  if(f==='gnd'){F=gndJit[n];S=1.1;D=.8;A=1;}
+  if(eng==='crank'){F*=.8;}
+  const e=evt(n,trig),dt=t-e;
+  if(dt<0)return 0;
+  if(dt<.12)return F*(1-dt/.12*.7);
+  if(dt<.12+D)return S+(Math.random()-.5)*.25;
+  const r=dt-.12-D;
+  if(r<2.5)return A*Math.exp(-r*1.4)*Math.sin(r*12.5);
+  return 0;
+}
+function avg(tp){
+  if(TP[tp]&&TP[tp].kv)return null;
+  let s=0,c=0;for(let t=0;t<160;t+=.1){s+=wave(tp,t,1);c++;}return s/c;
+}
+
+/* ================= RENDER ================= */
+function render(){
+  $('ignBlade').setAttribute('y2',eng==='off'?62:75);
+  let h='';
+  for(const k in TP){const p=TP[k];
+    if(p.kv)h+='<g class="tp" onclick="placeLead(\''+k+'\')"><circle class="hit" cx="'+p.x+'" cy="'+p.y+'" r="14"/><circle cx="'+p.x+'" cy="'+p.y+'" r="6.5" fill="#0d1013" stroke="#3fd0ff" stroke-width="2" stroke-dasharray="3 2"/></g>';
+    else h+='<g class="tp" onclick="placeLead(\''+k+'\')"><circle class="hit" cx="'+p.x+'" cy="'+p.y+'" r="12"/><circle class="ring" cx="'+p.x+'" cy="'+p.y+'" r="5"/>'+(p.l[2]?'<text class="tpl" x="'+(p.x+p.l[0])+'" y="'+(p.y+p.l[1])+'" text-anchor="middle">'+p.l[2]+'</text>':'')+'</g>';}
+  $('tps').innerHTML=h;
+  const probe=(k,c,o,lab)=>{if(!k)return '';const p=TP[k];return '<g><line x1="'+p.x+'" y1="'+p.y+'" x2="'+(p.x+o)+'" y2="'+(p.y-20)+'" stroke="'+c+'" stroke-width="3.5" stroke-linecap="round"/><circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="'+c+'" stroke="#000"/>'+(lab?'<rect x="'+(p.x+o-7)+'" y="'+(p.y-34)+'" width="14" height="14" rx="3" fill="'+c+'" stroke="#000"/><text x="'+(p.x+o)+'" y="'+(p.y-23)+'" text-anchor="middle" style="font:700 10px \'JetBrains Mono\';fill:#111">'+lab+'</text>':'<rect x="'+(p.x+o-4)+'" y="'+(p.y-32)+'" width="8" height="13" rx="3" fill="'+c+'" stroke="#000"/>')+'</g>';};
+  $('probes').innerHTML=probe(leads.blk,'#e6e6e6',-9)+probe(leads.red,'#ff4a3d',9)+probe(leads.A,'#f5d33a',-16,'A')+probe(leads.B,'#3fd0ff',16,'B');
+  ['red','blk','A','B'].forEach(c=>$('L_'+c).classList.toggle('on',active===c));
+  const rough=['coil2','plug2','igt2','pwr2','gnd'].includes(job.fault);
+  const chip=$('chipEng');
+  chip.textContent=eng==='off'?'ENGINE OFF':eng==='key'?'KEY ON':eng==='crank'?'CRANKING · NO START':(rough?'RUNNING · ~720 RPM · ROUGH':'RUNNING · 750 RPM · SMOOTH');
+  chip.className='chip'+(eng==='run'?(rough?' on':' go'):eng==='crank'?' on':eng==='key'?' go':'');
+  $('bEng').innerHTML=(eng==='off'?'Key ON':eng==='key'?'Start engine':'Shut off')+'<small>free</small>';
+  $('sTime').textContent=job.time;$('sParts').textContent='$'+job.parts;$('sJobs').textContent=fixedCount;
+  $('scanCost').textContent=job.scanned?'open':'2 min';
+  updateMeter();drawScope();
+}
+function fmt(x){return (x<0?'−':'')+Math.abs(x).toFixed(2);}
+function updateMeter(){
+  $('dmmLeads').textContent='R: '+(leads.red?TP[leads.red].name:'—')+' · B: '+(leads.blk?TP[leads.blk].name:'—');
+  if(!leads.red||!leads.blk){$('dmmVal').textContent='-- . --';return;}
+  const a=avg(leads.red),b=avg(leads.blk);
+  if(a===null||b===null){$('dmmVal').textContent='use scope';return;}
+  $('dmmVal').textContent=fmt(a-b+(Math.random()-.5)*.02)+' V';
+}
+function trigCyl(){return (leads.A&&TP[leads.A].cyl)||(leads.B&&TP[leads.B].cyl)||1;}
+function drawScope(){
+  const trig=trigCyl();
+  let g='<rect width="300" height="120" fill="#05090c"/>';
+  for(let i=1;i<10;i++)g+='<line x1="'+i*30+'" y1="0" x2="'+i*30+'" y2="120" stroke="#11232c" stroke-width="1"/>';
+  for(let i=1;i<6;i++)g+='<line x1="0" y1="'+i*20+'" x2="300" y2="'+i*20+'" stroke="#11232c" stroke-width="1"/>';
+  const ch=(tp,col,lab)=>{const trig=(tp&&TP[tp].cyl)||trigCyl();
+    if(!tp){$(lab).textContent=lab==='chA'?'A: —':'B: —';return;}
+    const isKv=!!TP[tp].kv,max=isKv?12:16;let pts='',pk=-1e9,mn=1e9;
+    for(let i=0;i<=300;i++){const t=i/300*20;const v=wave(tp,t,trig)+(isKv?0:(Math.random()-.5)*.08);pk=Math.max(pk,v);mn=Math.min(mn,v);pts+=i+','+(116-Math.max(-2,Math.min(max,v))/max*108).toFixed(1)+' ';}
+    g+='<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.6"/>';
+    $(lab).textContent=(lab==='chA'?'A: ':'B: ')+TP[tp].name+' · '+(isKv?'pk '+pk.toFixed(1)+' kV':'max '+pk.toFixed(1)+' / min '+mn.toFixed(1)+' V');
+  };
+  ch(leads.A,'#f5d33a','chA');ch(leads.B,'#3fd0ff','chB');
+  $('scope').innerHTML=g;
+  $('scaleTxt').textContent='V: 16 V full · kV: 12 kV full';
+}
+setInterval(()=>{if(!job)return;if(job.fault==='gnd')for(let n=1;n<=4;n++)gndJit[n]=3.5+Math.random()*3;updateMeter();drawScope();},500);
+
+/* ================= ACTIONS ================= */
+function addLog(html,head){const l=$('log');if(l.querySelector('.empty'))l.innerHTML='';const d=document.createElement('div');d.innerHTML=(head?'<span class="h">'+head+'</span> ':'')+html;l.prepend(d);}
+function stateTxt(){return '<span style="color:#4f6b58">['+({off:'engine off',key:'key on',run:'running',crank:'cranking'})[eng]+']</span>';}
+function setLead(c){active=c;if(c==='A'||c==='B')setTab('S');else setTab('M');render();}
+function setTab(t){tab=t;$('tabM').classList.toggle('on',t==='M');$('tabS').classList.toggle('on',t==='S');$('meterPane').classList.toggle('hidden',t!=='M');$('scopePane').classList.toggle('hidden',t!=='S');}
+function clearLeads(){leads={red:null,blk:'bat_n',A:null,B:null};render();}
+function placeLead(k){
+  beep(1500,.03);
+  if((active==='red'||active==='blk')&&TP[k].kv){addLog('kV pickup is a scope-only connection.','>');return;}
+  leads[active]=k;render();logReading();
+}
+function logReading(){
+  const key=[active,leads[active],eng,job.fault].join('|');if(job.seen[key])return;job.seen[key]=1;
+  job.time+=1;job.reads++;
+  if(active==='red'||active==='blk'){
+    if(!leads.red||!leads.blk)return;
+    const a=avg(leads.red),b=avg(leads.blk);
+    addLog(TP[leads.red].name+' → '+TP[leads.blk].name+' = '+fmt(a-b)+' V avg '+stateTxt());
+  } else {
+    const tp=leads[active];let pk=-1e9,mn=1e9;const trig=TP[tp].cyl||trigCyl();
+    for(let i=0;i<=400;i++){const v=wave(tp,i/400*20,trig);pk=Math.max(pk,v);mn=Math.min(mn,v);}
+    addLog('Scope '+active+' · '+TP[tp].name+': '+(TP[tp].kv?'firing peak '+pk.toFixed(1)+' kV':pk.toFixed(1)+' V max / '+mn.toFixed(1)+' V min')+' '+stateTxt());
+  }
+  render();
+}
+function engineBtn(){
+  if(eng==='off'){eng='key';clickSound(1);}
+  else if(eng==='key'){
+    if(job.fault==='fuse'){eng='crank';crankSound();addLogOnce('nostart','Engine cranks normally but will not start.');}
+    else{eng='run';crankSound();setTimeout(startIdle,600);}
+  } else {eng='off';stopIdle();stopCrank();}
+  job.seen={};render();
+}
+
+/* ================= MODALS ================= */
+function openModal(html,cls=''){$('modal').className='modal '+cls;$('modal').innerHTML=html;$('modalBg').classList.remove('hidden');}
+function closeModal(){$('modalBg').classList.add('hidden');}
+function codes(){const f=job.fault;return {coil2:['P0302'],plug2:['P0302'],igt2:['P0302','P0352'],pwr2:['P0302'],gnd:['P0300','P0301','P0303'],fuse:['P0351','P0352','P0353','P0354']}[f]||[];}
+const DESC={P0300:'Random/Multiple Cylinder Misfire',P0301:'Cylinder 1 Misfire',P0302:'Cylinder 2 Misfire',P0303:'Cylinder 3 Misfire',P0351:'Ignition Coil A Primary/Secondary Circuit',P0352:'Ignition Coil B Primary/Secondary Circuit',P0353:'Ignition Coil C Primary/Secondary Circuit',P0354:'Ignition Coil D Primary/Secondary Circuit'};
+function openScan(){
+  if(eng==='off'){openModal('<h3>Scan tool</h3><p>No communication. Turn the key ON first.</p><button class="ghost" onclick="closeModal()">OK</button>','scan');return;}
+  if(!job.scanned){job.scanned=true;job.time+=2;addLog(codes().length?codes().join(', '):'No DTCs','SCAN:');}
+  const f=job.fault,c=codes();
+  let mis=[0,0,0,0];
+  if(eng==='run'){if(f==='gnd')mis=[14+Math.floor(Math.random()*10),9+Math.floor(Math.random()*8),18+Math.floor(Math.random()*10),7+Math.floor(Math.random()*8)];else if(f!==null&&f!=='fuse')mis=[0,46+Math.floor(Math.random()*12),0,0];}
+  const mx=Math.max(50,...mis);
+  openModal('<h3>Scan tool</h3><div class="scr"><div style="color:#b6ffca">DTCs</div>'+(c.length?c.map(x=>'<div><span class="code">'+x+'</span>'+DESC[x]+'</div>').join(''):'<div>No DTCs stored</div>')+
+   '<br><div style="color:#b6ffca">LIVE DATA</div><div class="row"><span>Engine RPM</span><span>'+(eng==='run'?(f&&f!=='fuse'?'690–760 (unsteady)':'750'):eng==='crank'?'210 (cranking)':'0')+'</span></div>'+
+   '<div class="row"><span>Battery voltage</span><span>'+supply().toFixed(1)+' V</span></div>'+
+   '<div style="color:#b6ffca;margin-top:6px">MISFIRE COUNTERS (current)</div>'+
+   (eng==='run'?'<div class="bars">'+mis.map((m,i)=>'<div class="'+(m>10?'hot':'')+'" style="height:'+Math.max(3,m/mx*100)+'%"><span>CYL'+(i+1)+' · '+m+'</span></div>').join('')+'</div><br>':'<div>Engine not running</div>')+
+   '</div><button class="ghost" onclick="closeModal()">Back to diagram</button>','scan');
+  render();
+}
+const once={};function addLogOnce(k,t){const kk=k+job.orig+job.repairs.length;if(once[kk])return;once[kk]=1;addLog(t,'>');}
+function openTests(){
+  openModal('<h3>Component tests</h3><p>Hands-on checks. Each one costs shop time.</p>'+
+   '<button class="mbtn" onclick="swapCoil()"><span>Swap coil 2 ↔ coil 3, recheck</span><small>6 min</small></button>'+
+   '<button class="mbtn" onclick="pullPlug()"><span>Pull &amp; inspect spark plug 2</span><small>6 min</small></button>'+
+   '<button class="mbtn" onclick="sparkTest()"><span>Spark tester on coil 2 output</span><small>4 min</small></button>'+
+   '<button class="mbtn" onclick="inspectConn()"><span>Inspect coil connectors &amp; grounds</span><small>3 min</small></button>'+
+   '<button class="ghost" onclick="closeModal()">Close</button>');
+}
+function swapCoil(){job.time+=6;const f=job.fault;
+  const t=f==='coil2'?'Misfire MOVED to cylinder 3 — now setting P0303.':f==='gnd'?'Misfires still random across cylinders.':f==='fuse'?'Still cranks, no start.':f===null?'Runs smooth either way.':'Misfire STAYS on cylinder 2 (P0302).';
+  addLog(t,'COIL SWAP:');closeModal();render();}
+function pullPlug(){job.time+=6;const f=job.fault;
+  addLog(f==='plug2'?'Plug 2 is black, sooty and wet; insulator carbon-tracked.':'Plug 2 is light tan, gap within spec.','PLUG 2:');closeModal();render();}
+function sparkTest(){job.time+=4;const f=job.fault;
+  const t={coil2:'No spark at the tester.',plug2:'Strong blue spark jumps the tester gap.',igt2:'No spark at the tester.',pwr2:'Weak, thin orange spark, sometimes misses.',gnd:'Weak spark, misses sometimes.',fuse:'No spark while cranking.'}[f]||'Strong blue spark.';
+  addLog(t+(eng!=='run'&&eng!=='crank'?' (tested while cranking)':''),'SPARK TEST:');closeModal();render();}
+function inspectConn(){job.time+=3;const f=job.fault;
+  const t={pwr2:'All coil connectors seated. Coil 2 connector seal is torn.',gnd:'Coil ground G2 is bolted to the bracket; paint under the eyelet.',igt2:'Connectors seated. Harness to coil 2 rubs on the valve cover bracket.'}[f]||'All connectors seated, no obvious damage.';
+  addLog(t,'INSPECTION:');closeModal();render();}
+function openRepair(){
+  openModal('<h3>Repair</h3><p>Pick what to fix. Each repair adds 10 minutes plus the part cost. Verify afterwards.</p>'+REPAIRS.map(r=>'<button class="mbtn" onclick="doRepair(\''+r.id+'\')"><span>'+r.name+'</span><small>$'+r.cost+'</small></button>').join('')+'<button class="ghost" onclick="closeModal()">Cancel</button>');
+}
+function doRepair(id){
+  const r=REPAIRS.find(x=>x.id===id);job.time+=10;job.parts+=r.cost;job.repairs.push(id);
+  if(job.fault&&(FAULTS[job.fault].repair===id||(id==='allcoils'&&job.fault==='coil2')))job.fault=null;
+  addLog(r.name+' — done. Start it and verify.','REPAIR:');
+  job.scanned=false;eng='off';stopIdle();stopCrank();job.seen={};closeModal();render();
+}
+function closeJob(){
+  const fixed=job.fault===null,right=FAULTS[job.orig].repair;
+  const wasted=job.repairs.filter(r=>r!==right).reduce((s,id)=>s+REPAIRS.find(x=>x.id===id).cost,0);
+  let stars=0;if(fixed){stars=1;if(wasted===0)stars++;if(job.time<=30)stars++;fixedCount++;}career(fixed,stars);
+  openModal('<div class="verdict '+(fixed?'ok':'no')+'">'+(fixed?'Fixed it':'Comeback')+'</div><div class="stars">'+'★'.repeat(stars)+'☆'.repeat(3-stars)+'</div>'+
+   '<table class="res" style="width:100%;margin:8px 0"><tr><td>Time</td><td style="text-align:right">'+job.time+' min</td></tr><tr><td>Measurements</td><td style="text-align:right">'+job.reads+'</td></tr><tr><td>Parts spent</td><td style="text-align:right">$'+job.parts+'</td></tr><tr><td>Wasted on wrong parts</td><td style="text-align:right;color:'+(wasted?'#ff5a4e':'#7dfc9a')+'">$'+wasted+'</td></tr></table>'+
+   '<p class="res"><b>Fault:</b> '+FAULTS[job.orig].why+'</p>'+(fixed?'':'<p class="res" style="color:#ff8a80">The car came back still misfiring. Start it, check misfire counters and the scope before closing.</p>')+
+   '<button class="mbtn big" onclick="closeModal();newJob()">Next job</button>'+'<a class="ghost" style="display:block;text-align:center;text-decoration:none" href="index.html">Back to garage</a>');
+  stopIdle();stopCrank();render();
+}
+
+/* ================= SOUND ================= */
+let ac=null,idle=null,crank=null;
+function audio(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();return ac;}
+function beep(f,d){const a=audio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d);}
+function clickSound(){const a=audio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=900;g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.035);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.04);}
+function crankSound(){const a=audio();if(!a)return;stopCrank();const o=a.createOscillator(),g=a.createGain(),l=a.createOscillator(),lg=a.createGain();o.type='sawtooth';o.frequency.value=130;l.frequency.value=8;lg.gain.value=.08;l.connect(lg);lg.connect(g.gain);g.gain.value=.1;o.connect(g);g.connect(a.destination);o.start();l.start();crank={o,l,g};if(eng==='run')setTimeout(stopCrank,650);}
+function stopCrank(){if(!crank)return;try{crank.o.stop();crank.l.stop();}catch(e){}crank=null;}
+function startIdle(){const a=audio();if(!a||idle||eng!=='run')return;const g=a.createGain();g.gain.value=.14;const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=380;const o1=a.createOscillator(),o2=a.createOscillator();o1.type='sawtooth';o2.type='square';o1.frequency.value=50;o2.frequency.value=25;const g2=a.createGain();g2.gain.value=.35;o1.connect(lp);o2.connect(g2);g2.connect(lp);lp.connect(g);g.connect(a.destination);o1.start();o2.start();
+  let miss=null;if(job.fault&&job.fault!=='fuse'){miss=setInterval(()=>{if(Math.random()<.3){const t=a.currentTime;g.gain.setValueAtTime(.03,t);g.gain.linearRampToValueAtTime(.14,t+.08);}},140);}
+  idle={o1,o2,g,miss};}
+function stopIdle(){if(!idle)return;clearInterval(idle.miss);try{idle.o1.stop();idle.o2.stop();}catch(e){}idle=null;}
+
+drawStatic();newJob();
+
+</script>
+</body>
+</html>
