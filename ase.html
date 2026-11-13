@@ -776,6 +776,15 @@ function question(){
    '<div id="after"></div>';
   window.scrollTo(0,0);
 }
+function explainChoices(q,selected){
+  const reasons=q.whyWrong||q.distractors||{};
+  return '<div class="card"><b>Answer-by-answer review</b>'+q.o.map((choice,i)=>{
+    const correct=i===q.c;
+    const reason=correct?q.w:(reasons[i]||'This choice does not best satisfy the question. Compare it with the correct answer and the diagnostic reasoning above.');
+    return '<div class="area" style="display:block"><b style="color:'+(correct?'var(--green)':'var(--muted)')+'">'+(correct?'✓ Correct: ':'✗ Not best: ')+escapeReview(choice)+(i===selected?' (your selection)':'')+'</b><div class="sub">'+escapeReview(reason)+'</div></div>';
+  }).join('')+'</div>';
+}
+function escapeReview(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function pick(oi){
   const q=Q[quiz.ids[quiz.i]],ok=oi===q.c;
   if(quiz.ans[q.id]!==undefined)return;
@@ -784,6 +793,7 @@ function pick(oi){
   const last=quiz.i+1>=quiz.ids.length;
   $('after').innerHTML='<div class="why"><b class="'+(ok?'ok':'no')+'">'+(ok?'Correct.':'Not quite. The answer is: '+q.o[q.c]+'.')+'</b><br>'+q.w+'</div>'+
    (TESTS[q.t].lab&&!ok?'<a class="lablink" href="'+TESTS[q.t].lab[0]+'">🔧 <span>Practice it hands-on: <b>'+TESTS[q.t].lab[1]+'</b></span></a>':'')+
+   explainChoices(q,oi)+
    '<button class="big" onclick="next()">'+(last?'See results':'Next question')+'</button>';
   $('after').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
