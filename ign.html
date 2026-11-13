@@ -117,12 +117,36 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
 .bars div.hot{background:#ff5a4e}
 .bars span{position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-size:10px;color:#7dfc9a}
 .back{display:inline-block;color:#f5c518;text-decoration:none;font:600 13px 'JetBrains Mono',monospace;margin:8px 0 0}
+.topnav{display:flex;gap:6px;overflow-x:auto;margin:8px 0 4px;scrollbar-width:none}
+.topnav::-webkit-scrollbar{display:none}
+.topnav a{flex:none;text-decoration:none;color:#cfd3d8;background:#1c1f23;border:1px solid #33383f;border-radius:20px;padding:7px 12px;font:600 13px Barlow,system-ui,sans-serif}
+.topnav a.on{background:#f5c518;color:#111;border-color:#f5c518}
+.guide{background:#15201a;border:1px solid #2f5a3d;border-radius:12px;margin:8px 0;overflow:hidden}
+.gHead{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;color:#e9ebee;padding:11px 12px;font:700 15px Barlow,system-ui,sans-serif;text-align:left}
+.gHead span{font:600 12px "JetBrains Mono",monospace;color:#7dfc9a}
+.gBody{padding:0 12px 12px}
+.gStep{display:flex;gap:10px;padding:7px 0;border-top:1px dashed #23402e;align-items:flex-start}
+.gNum{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 12px "JetBrains Mono",monospace;background:#22282e;color:#9aa1ab;border:1px solid #3a3f46}
+.gStep.done .gNum{background:#2f6b45;color:#fff;border-color:#2f6b45}
+.gStep.cur .gNum{background:#f5c518;color:#111;border-color:#f5c518}
+.gStep b{display:block;font-size:15px;color:#e9ebee}
+.gStep.done b{color:#7dfc9a;font-weight:600}
+.gStep p{margin:4px 0 0;font-size:14px;line-height:1.45;color:#cfe9d6}
+.gBtns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.gBtns button{border-radius:9px;padding:9px 12px;font:700 14px Barlow,system-ui,sans-serif;border:0;background:#f5c518;color:#111}
+.gBtns button.alt{background:transparent;border:1px solid #2f5a3d;color:#7dfc9a}
+.gHint{margin-top:8px;background:#0e1712;border-left:3px solid #f5c518;border-radius:6px;padding:7px 9px;font-size:13.5px;color:#e9ebee;line-height:1.4}
+.actions.top{margin:8px 0 0}
+.wrap{padding-bottom:200px}
+.lcd .val{font-size:26px}
+.scopeIn svg{height:96px}
+.pick{font-size:13px;color:#9aa1ab;margin:6px 2px;line-height:1.4}.pick b{color:#e9ebee}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="hazard"></div>
-  <a class="back" href="index.html">← Garage</a>
+  <nav class="topnav"><a href="index.html">Garage</a><a href="quick.html">Quick jobs</a><a href="fan.html">Fan lab</a><a href="ign.html" class="on">Ignition lab</a><a href="ase.html">ASE prep</a></nav>
   <div class="topbar">
     <div class="brand">Ignition<br><span>Lab</span></div>
     <div class="stats">
@@ -138,10 +162,17 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
     <div class="complaint" id="tComplaint"></div>
   </div>
 
-  <div class="tip" id="tip">
-    <b>How it works:</b> Coil-on-plug, 4 cylinders, firing order 1-3-4-2. Each coil has <b>pin 1</b> power, <b>pin 2</b> ground and <b>pin 3</b> the IGT trigger from the ECM. Start the engine, then put <b>Scope A</b> and <b>Scope B</b> on test points to see the waveforms. The <b>kV</b> points are secondary pickups clipped on each coil. The meter only shows averages, so the scope will tell you more.<br>
-    <button onclick="document.getElementById('tip').classList.add('hidden')">Got it ✕</button>
+  <div class="actions top">
+    <button class="act" id="bEng" onclick="engineBtn()">Key ON<small>free</small></button>
+    <button class="act" onclick="openScan()">Scan tool<small id="scanCost">2 min</small></button>
+    <button class="act" onclick="clearLeads()">Clear leads<small>free</small></button>
+    <button class="act" onclick="openTests()">Component tests<small>swap / plug / spark</small></button>
+    <button class="act" onclick="openRepair()">Repair<small>10 min + parts</small></button>
+    <button class="act primary" onclick="closeJob()">Close job<small>verify first!</small></button>
   </div>
+
+  <div class="guide" id="guide"></div>
+  <p class="pick">Pick a lead, then tap a test point on the diagram. <b>1</b> = power, <b>2</b> = ground, <b>3</b> = IGT trigger from the ECM, dashed circle = spark (kV) pickup.</p>
 
   <div class="leadbar4">
     <button class="lead red on" id="L_red" onclick="setLead('red')"><span class="dot" style="background:#ff4a3d"></span>Meter red</button>
@@ -160,15 +191,6 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
       <g id="probes"></g>
       <g id="tps"></g>
     </svg>
-  </div>
-
-  <div class="actions">
-    <button class="act" id="bEng" onclick="engineBtn()">Key ON<small>free</small></button>
-    <button class="act" onclick="openScan()">Scan tool<small id="scanCost">2 min</small></button>
-    <button class="act" onclick="clearLeads()">Clear leads<small>free</small></button>
-    <button class="act" onclick="openTests()">Component tests<small>swap / plug / spark</small></button>
-    <button class="act" onclick="openRepair()">Repair<small>10 min + parts</small></button>
-    <button class="act primary" onclick="closeJob()">Close job<small>verify first!</small></button>
   </div>
 
   <div class="card">
@@ -283,7 +305,7 @@ const $=id=>document.getElementById(id);
 
 function newJob(){
   const ks=Object.keys(FAULTS),f=ks[Math.floor(Math.random()*ks.length)];
-  job={fault:f,orig:f,veh:VEHICLES[Math.floor(Math.random()*VEHICLES.length)],name:NAMES[Math.floor(Math.random()*NAMES.length)],time:0,parts:0,reads:0,repairs:[],scanned:false,seen:{}};
+  job={flags:{},hints:0,fault:f,orig:f,veh:VEHICLES[Math.floor(Math.random()*VEHICLES.length)],name:NAMES[Math.floor(Math.random()*NAMES.length)],time:0,parts:0,reads:0,repairs:[],scanned:false,seen:{}};
   eng='off';leads={red:null,blk:'bat_n',A:null,B:null};active='red';
   $('tNum').textContent='WORK ORDER #'+(6100+Math.floor(Math.random()*800))+' · '+job.name;
   $('tVeh').textContent=job.veh;$('tComplaint').textContent=FAULTS[f].complaint;
@@ -362,6 +384,7 @@ function render(){
   $('sTime').textContent=job.time;$('sParts').textContent='$'+job.parts;$('sJobs').textContent=fixedCount;
   $('scanCost').textContent=job.scanned?'open':'2 min';
   updateMeter();drawScope();
+  renderGuide();
 }
 function fmt(x){return (x<0?'−':'')+Math.abs(x).toFixed(2);}
 function updateMeter(){
@@ -399,7 +422,9 @@ function clearLeads(){leads={red:null,blk:'bat_n',A:null,B:null};render();}
 function placeLead(k){
   beep(1500,.03);
   if((active==='red'||active==='blk')&&TP[k].kv){addLog('kV pickup is a scope-only connection.','>');return;}
-  leads[active]=k;render();logReading();
+  leads[active]=k;
+  if(running()&&TP[k].cyl){if((active==='A'||active==='B')&&TP[k].kv)job.flags.kv=true;else if(!TP[k].kv)job.flags.primary=true;}
+  render();logReading();
 }
 function logReading(){
   const key=[active,leads[active],eng,job.fault].join('|');if(job.seen[key])return;job.seen[key]=1;
@@ -431,6 +456,7 @@ function codes(){const f=job.fault;return {coil2:['P0302'],plug2:['P0302'],igt2:
 const DESC={P0300:'Random/Multiple Cylinder Misfire',P0301:'Cylinder 1 Misfire',P0302:'Cylinder 2 Misfire',P0303:'Cylinder 3 Misfire',P0351:'Ignition Coil A Primary/Secondary Circuit',P0352:'Ignition Coil B Primary/Secondary Circuit',P0353:'Ignition Coil C Primary/Secondary Circuit',P0354:'Ignition Coil D Primary/Secondary Circuit'};
 function openScan(){
   if(eng==='off'){openModal('<h3>Scan tool</h3><p>No communication. Turn the key ON first.</p><button class="ghost" onclick="closeModal()">OK</button>','scan');return;}
+  if(running()){job.flags.scan=true;if(job.repairs.length)job.flags.verified=true;}
   if(!job.scanned){job.scanned=true;job.time+=2;addLog(codes().length?codes().join(', '):'No DTCs','SCAN:');}
   const f=job.fault,c=codes();
   let mis=[0,0,0,0];
@@ -453,15 +479,15 @@ function openTests(){
    '<button class="mbtn" onclick="inspectConn()"><span>Inspect coil connectors &amp; grounds</span><small>3 min</small></button>'+
    '<button class="ghost" onclick="closeModal()">Close</button>');
 }
-function swapCoil(){job.time+=6;const f=job.fault;
+function swapCoil(){job.flags.test=true;job.time+=6;const f=job.fault;
   const t=f==='coil2'?'Misfire MOVED to cylinder 3 — now setting P0303.':f==='gnd'?'Misfires still random across cylinders.':f==='fuse'?'Still cranks, no start.':f===null?'Runs smooth either way.':'Misfire STAYS on cylinder 2 (P0302).';
   addLog(t,'COIL SWAP:');closeModal();render();}
-function pullPlug(){job.time+=6;const f=job.fault;
+function pullPlug(){job.flags.test=true;job.time+=6;const f=job.fault;
   addLog(f==='plug2'?'Plug 2 is black, sooty and wet; insulator carbon-tracked.':'Plug 2 is light tan, gap within spec.','PLUG 2:');closeModal();render();}
-function sparkTest(){job.time+=4;const f=job.fault;
+function sparkTest(){job.flags.test=true;job.time+=4;const f=job.fault;
   const t={coil2:'No spark at the tester.',plug2:'Strong blue spark jumps the tester gap.',igt2:'No spark at the tester.',pwr2:'Weak, thin orange spark, sometimes misses.',gnd:'Weak spark, misses sometimes.',fuse:'No spark while cranking.'}[f]||'Strong blue spark.';
   addLog(t+(eng!=='run'&&eng!=='crank'?' (tested while cranking)':''),'SPARK TEST:');closeModal();render();}
-function inspectConn(){job.time+=3;const f=job.fault;
+function inspectConn(){job.flags.test=true;job.time+=3;const f=job.fault;
   const t={pwr2:'All coil connectors seated. Coil 2 connector seal is torn.',gnd:'Coil ground G2 is bolted to the bracket; paint under the eyelet.',igt2:'Connectors seated. Harness to coil 2 rubs on the valve cover bracket.'}[f]||'All connectors seated, no obvious damage.';
   addLog(t,'INSPECTION:');closeModal();render();}
 function openRepair(){
@@ -495,6 +521,46 @@ function startIdle(){const a=audio();if(!a||idle||eng!=='run')return;const g=a.c
   let miss=null;if(job.fault&&job.fault!=='fuse'){miss=setInterval(()=>{if(Math.random()<.3){const t=a.currentTime;g.gain.setValueAtTime(.03,t);g.gain.linearRampToValueAtTime(.14,t+.08);}},140);}
   idle={o1,o2,g,miss};}
 function stopIdle(){if(!idle)return;clearInterval(idle.miss);try{idle.o1.stop();idle.o2.stop();}catch(e){}idle=null;}
+
+function startAndScan(){if(eng==='off')engineBtn();if(eng==='key')engineBtn();openScan();}
+function toDiagram(){document.getElementById('dia').scrollIntoView({behavior:'smooth',block:'center'});}
+const GUIDE=[
+ {t:'Verify the complaint',d:'Start the engine (it may only crank) and open the scan tool. Read the codes and the misfire counters to see which cylinder is the problem.',btn:'Start engine + scan',done:()=>!!job.flags.scan,go:startAndScan},
+ {t:'Check the primary side',d:'Tap <b>Scope A</b>, then the problem coil\'s pin 3 (IGT trigger). Tap <b>Scope B</b>, then the same coil\'s pin 1 (power). The engine must be running or cranking.',btn:'Pick Scope A',done:()=>!!job.flags.primary,go:()=>{setLead('A');toDiagram();}},
+ {t:'Check the spark (secondary)',d:'Put a scope lead on the dashed kV circle of the problem coil and the other lead on a good coil\'s kV circle. Compare the firing lines.',btn:'Pick Scope B',done:()=>!!job.flags.kv,go:()=>{setLead('B');toDiagram();}},
+ {t:'Prove it',d:'Confirm with a hands-on test: swap coils, pull the plug, use the spark tester or inspect the connectors and grounds.',btn:'Component tests',done:()=>!!job.flags.test,go:()=>openTests()},
+ {t:'Make the repair',d:'Pick the repair that matches your evidence.',btn:'Choose repair',done:()=>job.repairs.length>0,go:()=>openRepair()},
+ {t:'Verify the fix',d:'Start the engine again and check the misfire counters on the scan tool before closing the job.',btn:'Start engine + scan',done:()=>!!job.flags.verified,go:startAndScan},
+];
+const HINTS={
+ coil2:['Scope coil 2 pin 3 (IGT) and pin 1 (power) with the engine running. Are both normal?','The primary side looks fine. Compare coil 2 kV with coil 1 kV, then swap coil 2 with coil 3 and recheck the codes.'],
+ plug2:['Compare coil 2 kV with coil 1 kV on the scope. Look at the firing line height and the spark line length.','A low firing line with a long, low spark line means the spark is leaking. Swap coils (does the misfire move?) and pull plug 2.'],
+ igt2:['Scope coil 2 pin 3 with the engine running. Is the 5 V trigger pulse there?','No pulse at the coil? Put the other scope lead on ECM IGT2. A pulse at one end and none at the other means an open wire.'],
+ pwr2:['Scope coil 2 pin 1 (power) with Scope A, and coil 3 pin 1 with Scope B, engine running.','Coil 2\'s power sags far more than coil 3\'s while charging. That means high resistance in coil 2\'s power feed. Try inspecting the connectors.'],
+ gnd:['The misfire jumps between cylinders, so look for something every coil shares.','Scope any coil\'s pin 2 (ground) with the engine running. It should stay near 0 V. If it jumps several volts, check G2.'],
+ fuse:['It only cranks. Scope a coil\'s pin 3: is the trigger there while cranking? Then check pin 1 for power.','No power at any coil\'s pin 1? Check both sides of fuse F7.'],
+};
+
+/* ===== GUIDED FLOW ===== */
+let guideOpen=true;
+function renderGuide(){
+  const el=document.getElementById('guide');if(!el||!job)return;
+  job.flags=job.flags||{};job.hints=job.hints||0;
+  const cur=GUIDE.findIndex(g=>!g.done());
+  const n=cur<0?GUIDE.length:cur;
+  let h='<button class="gHead" onclick="guideOpen=!guideOpen;renderGuide()">Diagnostic steps <span>'+n+'/'+GUIDE.length+' done '+(guideOpen?'▾':'▸')+'</span></button>';
+  if(guideOpen){
+    h+='<div class="gBody">'+GUIDE.map((g,i)=>{const st=g.done()?'done':i===cur?'cur':'';
+      return '<div class="gStep '+st+'"><div class="gNum">'+(g.done()?'✓':i+1)+'</div><div><b>'+g.t+'</b>'+(i===cur?'<p>'+g.d+'</p><div class="gBtns"><button onclick="GUIDE['+i+'].go()">'+g.btn+'</button></div>':'')+'</div></div>';}).join('');
+    if(cur<0)h+='<p style="margin:8px 0 0;color:#7dfc9a;font-size:14px">All steps done. Tap <b>Close job</b> to see your score.</p>';
+    const hs=HINTS[job.orig]||[];
+    for(let i=0;i<job.hints;i++)h+='<div class="gHint">💡 '+hs[i]+'</div>';
+    if(job.hints<hs.length)h+='<div class="gBtns"><button class="alt" onclick="useHint()">Stuck? Get a hint (+3 min)</button></div>';
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+function useHint(){const hs=HINTS[job.orig]||[];if(job.hints>=hs.length)return;job.time+=3;job.hints++;render();}
 
 drawStatic();newJob();
 

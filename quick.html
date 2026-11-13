@@ -144,12 +144,16 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;letter-spacing:.02em;margin:0
 .t-gen{background:linear-gradient(#3a3f46,#262a2f);border:2px solid #555}
 .tool .ghost{margin-top:10px;background:rgba(0,0,0,.25);color:inherit;border-color:rgba(0,0,0,.35)}
 .back{display:inline-block;color:#f5c518;text-decoration:none;font:600 13px 'JetBrains Mono',monospace;margin:8px 0 0}
+.topnav{display:flex;gap:6px;overflow-x:auto;margin:8px 0 4px;scrollbar-width:none}
+.topnav::-webkit-scrollbar{display:none}
+.topnav a{flex:none;text-decoration:none;color:#cfd3d8;background:#1c1f23;border:1px solid #33383f;border-radius:20px;padding:7px 12px;font:600 13px Barlow,system-ui,sans-serif}
+.topnav a.on{background:#f5c518;color:#111;border-color:#f5c518}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="hazard"></div>
-  <a class="back" href="index.html">← Garage</a>
+  <nav class="topnav"><a href="index.html">Garage</a><a href="quick.html" class="on">Quick jobs</a><a href="fan.html">Fan lab</a><a href="ign.html">Ignition lab</a><a href="ase.html">ASE prep</a></nav>
 
   <section id="start" class="hero">
     <h1>Check <span>Engine</span></h1>

@@ -140,12 +140,39 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
 .meterBig svg{width:100%;display:block}
 .dpos{cursor:pointer}
 .log .dim{color:#4f6b58}
+.topnav{display:flex;gap:6px;overflow-x:auto;margin:8px 0 4px;scrollbar-width:none}
+.topnav::-webkit-scrollbar{display:none}
+.topnav a{flex:none;text-decoration:none;color:#cfd3d8;background:#1c1f23;border:1px solid #33383f;border-radius:20px;padding:7px 12px;font:600 13px Barlow,system-ui,sans-serif}
+.topnav a.on{background:#f5c518;color:#111;border-color:#f5c518}
+.guide{background:#15201a;border:1px solid #2f5a3d;border-radius:12px;margin:8px 0;overflow:hidden}
+.gHead{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;color:#e9ebee;padding:11px 12px;font:700 15px Barlow,system-ui,sans-serif;text-align:left}
+.gHead span{font:600 12px "JetBrains Mono",monospace;color:#7dfc9a}
+.gBody{padding:0 12px 12px}
+.gStep{display:flex;gap:10px;padding:7px 0;border-top:1px dashed #23402e;align-items:flex-start}
+.gNum{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 12px "JetBrains Mono",monospace;background:#22282e;color:#9aa1ab;border:1px solid #3a3f46}
+.gStep.done .gNum{background:#2f6b45;color:#fff;border-color:#2f6b45}
+.gStep.cur .gNum{background:#f5c518;color:#111;border-color:#f5c518}
+.gStep b{display:block;font-size:15px;color:#e9ebee}
+.gStep.done b{color:#7dfc9a;font-weight:600}
+.gStep p{margin:4px 0 0;font-size:14px;line-height:1.45;color:#cfe9d6}
+.gBtns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.gBtns button{border-radius:9px;padding:9px 12px;font:700 14px Barlow,system-ui,sans-serif;border:0;background:#f5c518;color:#111}
+.gBtns button.alt{background:transparent;border:1px solid #2f5a3d;color:#7dfc9a}
+.gHint{margin-top:8px;background:#0e1712;border-left:3px solid #f5c518;border-radius:6px;padding:7px 9px;font-size:13.5px;color:#e9ebee;line-height:1.4}
+.locTabs{display:grid;grid-template-columns:repeat(3,1fr);overflow:visible}
+.loc{text-align:center;padding:9px 4px}
+.actions.top{margin:8px 0 0}
+.wrap{padding-bottom:120px}
+.lcd .val{font-size:26px}
+.knob{width:48px;height:48px;font-size:17px}
+.dmmIn{padding:6px 10px}
+.vh span{display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="hazard"></div>
-  <a class="back" href="index.html">← Garage</a>
+  <nav class="topnav"><a href="index.html">Garage</a><a href="quick.html">Quick jobs</a><a href="fan.html" class="on">Fan lab</a><a href="ign.html">Ignition lab</a><a href="ase.html">ASE prep</a></nav>
   <div class="topbar">
     <div class="brand">Fan Circuit<br><span>Lab</span></div>
     <div class="stats">
@@ -161,10 +188,16 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
     <div class="meta" style="margin-top:6px">ASE: A6 Electrical · A7 HVAC/Engine Cooling</div>
   </div>
 
-  <div class="tip" id="tip">
-    <b>Work it like a real car.</b> Check the <b>Wiring diagram</b> tab to see where to test, then go to that location and back-probe. Pick the <b>red</b> or <b>black probe</b> below, then tap a terminal. Tap the meter at the bottom to turn the dial (V⎓, Ω, continuity, A) or move the red lead between jacks. Use the scan tool to command the fan.<br>
-    <button onclick="document.getElementById('tip').classList.add('hidden')">Got it ✕</button>
+  <div class="actions top">
+    <button class="act" id="bKey" onclick="toggleKey()">Key ON</button>
+    <button class="act" onclick="openScan()">Scan tool<small>bidirectional</small></button>
+    <button class="act" onclick="openMeter()">Meter dial<small>V · Ω · A</small></button>
+    <button class="act" onclick="openTests()">Other checks<small>bench / inspect</small></button>
+    <button class="act" onclick="openRepair()">Repair<small>10 min + parts</small></button>
+    <button class="act primary" onclick="closeJob()">Close job<small>verify first!</small></button>
   </div>
+
+  <div class="guide" id="guide"></div>
 
   <div class="probes">
     <button class="pbtn red" id="P_red" onclick="setActive('red')"><span class="lead r"></span><span><b>Red probe</b><small id="P_redLoc"></small></span></button>
@@ -174,15 +207,6 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
   <div class="chips2"><div class="chip" id="chipKey"></div><div class="chip" id="chipCmd"></div><div class="chip" id="chipFan"></div></div>
   <div class="locTabs" id="locTabs"></div>
   <div class="viewWrap" id="view"></div>
-
-  <div class="actions">
-    <button class="act" id="bKey" onclick="toggleKey()">Key ON</button>
-    <button class="act" onclick="openScan()">Scan tool<small>bidirectional</small></button>
-    <button class="act" onclick="openMeter()">Meter dial<small>V · Ω · A</small></button>
-    <button class="act" onclick="openTests()">Other checks<small>bench / inspect</small></button>
-    <button class="act" onclick="openRepair()">Repair<small>10 min + parts</small></button>
-    <button class="act primary" onclick="closeJob()">Close job<small>verify first!</small></button>
-  </div>
 
   <div class="card">
     <h3 style="font-size:18px;margin-bottom:6px">Tech notes</h3>
@@ -235,7 +259,7 @@ const NAMES=['Tony','Maria','Dev','Keisha','Frank','Lena','Omar'];
 let job,S,M,fixedCount=0,loc='fusebox',active='red';
 function newJob(){
   const ks=Object.keys(FAULTS),f=ks[Math.floor(Math.random()*ks.length)];
-  job={fault:f,orig:f,veh:VEHICLES[Math.floor(Math.random()*VEHICLES.length)],name:NAMES[Math.floor(Math.random()*NAMES.length)],time:0,parts:0,reads:0,repairs:[],scanned:false,seen:{}};
+  job={flags:{},hints:0,fault:f,orig:f,veh:VEHICLES[Math.floor(Math.random()*VEHICLES.length)],name:NAMES[Math.floor(Math.random()*NAMES.length)],time:0,parts:0,reads:0,repairs:[],scanned:false,seen:{}};
   S={key:false,cmd:false,fuseIn:true,relay:'in',jumper:false,fanPlug:true};
   M={dial:'VDC',red:'V',meterFuse:true,leads:{red:null,blk:'bat_n'},clamp:false};
   loc='fusebox';active='red';
@@ -336,8 +360,10 @@ function render(){
   ['red','blk'].forEach(c=>$('P_'+c).classList.toggle('on',active===c));
   $('P_redLoc').textContent=M.leads.red?TPN[M.leads.red]:'not connected';
   $('P_blkLoc').textContent=M.leads.blk?TPN[M.leads.blk]:'not connected';
+  if(job.repairs.length&&S.key&&S.cmd&&s.fan==='fast')job.flags.verified=true;
   $('sTime').textContent=job.time;$('sParts').textContent='$'+job.parts;$('sJobs').textContent=fixedCount;
   drawLcd();
+  renderGuide();
   fanSound(s);
 }
 function drawLcd(){
@@ -489,6 +515,7 @@ function probe(id){
   beep(1500,.03);M.leads[active]=id;M.clamp=false;
   const key=[M.leads.red,M.leads.blk,M.dial,M.red,JSON.stringify(S),job.fault].join('|');
   render();
+  if(M.leads.red&&M.leads.blk){const rr=M.leads.red;if(S.key&&S.cmd&&(rr==='c1p'||rr==='c1n'))job.flags.fan=true;if(['f12a','f12b','r30','r87','r85','r86','ecm45','g1','body'].includes(rr)||(rr==='c1n'&&M.leads.blk!=='bat_n'))job.flags.trace=true;}
   if(M.leads.red&&M.leads.blk&&!job.seen[key]){job.seen[key]=1;job.time+=1;job.reads++;
     const r=reading();addLog(TPN[M.leads.red]+' → '+TPN[M.leads.blk]+': <b>'+r.txt+' '+r.unit+'</b> <span class="dim">['+fnName()+', '+stTxt()+']</span>');render();}
 }
@@ -534,7 +561,7 @@ function openScan(){
   openModal('<h3>Scan tool</h3><div class="scr"><div style="color:#b6ffca">DTCs</div><div>'+dtc+'</div><br><div style="color:#b6ffca">LIVE DATA</div><div class="row"><span>ECT</span><span>226 °F</span></div><div class="row"><span>Fan 1 command</span><span>'+(S.cmd?'ON':'OFF')+'</span></div><div class="row"><span>Battery voltage</span><span>12.4 V</span></div></div>'+
    '<p>Bidirectional control. The command stays on after you close this, so you can probe.</p><button class="mbtn big" onclick="setCmd('+(!S.cmd)+')">'+(S.cmd?'Command fan OFF':'Command fan ON')+'</button><button class="ghost" onclick="closeModal()">Back</button>','scan');
 }
-function setCmd(on){const b=solve().energized;S.cmd=on;const s=solve();if(s.energized!==b)clickSound();
+function setCmd(on){if(on)job.flags.cmd=true;const b=solve().energized;S.cmd=on;const s=solve();if(s.energized!==b)clickSound();
   if(on)addLog(s.energized?'Fan commanded ON. Relay clicks. '+(s.fan==='fast'?'Fan runs.':s.fan==='slow'?'Fan turns slowly.':'Fan does not run.'):'Fan commanded ON. No relay click'+(S.relay!=='in'&&S.relay!=='adapter'?' (relay is pulled)':'')+'.','SCAN:');
   openScan();render();}
 function openTests(){openModal('<h3>Other checks</h3><p>Each costs shop time.</p><button class="mbtn" onclick="bench()"><span>Bench test the relay</span><small>5 min</small></button><button class="mbtn" onclick="inspect()"><span>Visual inspection of fan wiring</span><small>3 min</small></button><button class="ghost" onclick="closeModal()">Close</button>');}
@@ -561,8 +588,45 @@ function clickSound(){const a=audio();if(!a)return;const t=a.currentTime,o=a.cre
 function fanSound(s){if(s.fan===lastFan)return;lastFan=s.fan;const a=audio();if(!a)return;if(fanNode){const t=a.currentTime;fanNode.g.gain.linearRampToValueAtTime(0,t+.3);fanNode.s.stop(t+.35);fanNode=null;}
   if(s.fan==='off')return;const len=a.sampleRate*2,b=a.createBuffer(1,len,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;const src=a.createBufferSource();src.buffer=b;src.loop=true;const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=s.fan==='slow'?350:750;const g=a.createGain();g.gain.value=0;g.gain.linearRampToValueAtTime(s.fan==='slow'?.04:.08,a.currentTime+.4);src.connect(bp);bp.connect(g);g.connect(a.destination);src.start();fanNode={s:src,g};}
 
-newJob();
+const GUIDE=[
+ {t:'Verify the complaint',d:'Turn the key on, open the scan tool and command the fan ON. Listen for a relay click and watch whether the fan spins.',btn:'Open scan tool',done:()=>!!job.flags.cmd,go:()=>{if(!S.key)toggleKey();openScan();}},
+ {t:'Check power and ground at the fan',d:'Leave the black probe on battery −. Tap <b>Red probe</b>, then tap C1 cavity 1 (power) and C1 cavity 2 (ground side) while the fan is commanded ON.',btn:'Go to fan connector',done:()=>!!job.flags.fan,go:()=>{go('fan');setActive('red');document.getElementById('view').scrollIntoView({behavior:'smooth'});}},
+ {t:'Trace back to the fault',d:'Open the wiring diagram. Power flows F12 → relay 30 → 87 → fan, the ECM grounds relay 85 to switch it, and the fan grounds through G1. Measure along that path until the voltage goes missing or a ground reads too high.',btn:'Open wiring diagram',done:()=>!!job.flags.trace,go:()=>{go('diagram');document.getElementById('view').scrollIntoView({behavior:'smooth'});}},
+ {t:'Make the repair',d:'When your readings point to one part or wire, choose the repair.',btn:'Choose repair',done:()=>job.repairs.length>0,go:()=>openRepair()},
+ {t:'Verify the fix',d:'Command the fan ON again and make sure it runs at full speed, then close the job.',btn:'Verify with scan tool',done:()=>!!job.flags.verified,go:()=>{if(!S.key)toggleKey();openScan();}},
+];
+const HINTS={
+ fuse:['With the fan commanded ON, check relay terminal 30 in the fuse/relay box (put the relay on the test adapter first).','No voltage at 30? Check both test points on top of fuse F12. Power on one side only means an open fuse.'],
+ contacts:['The relay clicks but the fan doesn\'t run. Use the test adapter and compare relay 30 and relay 87 with the fan commanded ON.','12 V on 30 but 0 V on 87 while it clicks: the relay isn\'t passing power. Bench test it.'],
+ coil:['No click. With the key on, check relay 86 (power in) and relay 85 (ECM side).','86 has 12 V but 85 reads 0 V: voltage isn\'t getting through the coil. Bench test the relay.'],
+ ctrl:['No click. Command the fan ON and check relay 85. The ECM should pull it down near 0 V.','85 stays at 12 V. Now check ECM C3 pin 45 (GRN/YEL). Different readings on each end of one wire means the wire is open.'],
+ wire:['Check C1 cavity 1 with the fan commanded. If there\'s no power, go upstream to relay 87.','87 has 12 V but C1 cavity 1 has 0 V: the BLU wire between them is open. Confirm with ohms, key off, relay pulled.'],
+ ground:['The fan runs slowly. Do a ground-side voltage drop: red on C1 cavity 2, black on battery −, fan running.','More than 0.2 V there is a bad ground. Go to G1 and compare the eyelet to bare body metal.'],
+ motor:['C1 has power on cavity 1 and a ground on cavity 2, but nothing turns. Check current with the amp clamp (Meter dial).','0 A with good power and ground means the motor is open. Confirm: unplug C1, key off, ohms across the fan side.'],
+};
 
+/* ===== GUIDED FLOW ===== */
+let guideOpen=true;
+function renderGuide(){
+  const el=document.getElementById('guide');if(!el||!job)return;
+  job.flags=job.flags||{};job.hints=job.hints||0;
+  const cur=GUIDE.findIndex(g=>!g.done());
+  const n=cur<0?GUIDE.length:cur;
+  let h='<button class="gHead" onclick="guideOpen=!guideOpen;renderGuide()">Diagnostic steps <span>'+n+'/'+GUIDE.length+' done '+(guideOpen?'▾':'▸')+'</span></button>';
+  if(guideOpen){
+    h+='<div class="gBody">'+GUIDE.map((g,i)=>{const st=g.done()?'done':i===cur?'cur':'';
+      return '<div class="gStep '+st+'"><div class="gNum">'+(g.done()?'✓':i+1)+'</div><div><b>'+g.t+'</b>'+(i===cur?'<p>'+g.d+'</p><div class="gBtns"><button onclick="GUIDE['+i+'].go()">'+g.btn+'</button></div>':'')+'</div></div>';}).join('');
+    if(cur<0)h+='<p style="margin:8px 0 0;color:#7dfc9a;font-size:14px">All steps done. Tap <b>Close job</b> to see your score.</p>';
+    const hs=HINTS[job.orig]||[];
+    for(let i=0;i<job.hints;i++)h+='<div class="gHint">💡 '+hs[i]+'</div>';
+    if(job.hints<hs.length)h+='<div class="gBtns"><button class="alt" onclick="useHint()">Stuck? Get a hint (+3 min)</button></div>';
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+function useHint(){const hs=HINTS[job.orig]||[];if(job.hints>=hs.length)return;job.time+=3;job.hints++;render();}
+
+newJob();
 </script>
 </body>
 </html>
