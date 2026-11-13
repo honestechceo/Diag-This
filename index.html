@@ -61,7 +61,7 @@ button.on{background:var(--yellow);color:#111;border-color:var(--yellow)}
     <button id="bJobs" class="on">Jobs board</button>
     <button id="bEngine">Start engine</button>
     <button id="bLabels" class="on">Labels</button>
-    <button id="bView">Reset view</button>
+    <button id="bView">View: top</button>
   </div>
 </div>
 
@@ -86,7 +86,14 @@ renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x15181c);
-scene.fog=new THREE.Fog(0x15181c,7,16);
+scene.fog=new THREE.Fog(0x15181c,11,26);
+// soft studio reflections (shop lights) for the paint and glass
+(function(){const pm=new THREE.PMREMGenerator(renderer);const es=new THREE.Scene();
+  es.add(new THREE.Mesh(new THREE.BoxGeometry(30,14,30),new THREE.MeshBasicMaterial({color:0x30343a,side:THREE.BackSide})));
+  const lm=new THREE.MeshBasicMaterial({color:0xffffff});
+  [[0,6.8,0,10,2.2],[0,6.8,-5,10,2.2],[0,6.8,5,10,2.2]].forEach(([x,y,z,w,d])=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(w,d),lm);p.position.set(x,y,z);p.rotation.x=Math.PI/2;es.add(p);});
+  const side=new THREE.Mesh(new THREE.PlaneGeometry(14,3),new THREE.MeshBasicMaterial({color:0x8a8f96}));side.position.set(-14.5,3,0);side.rotation.y=Math.PI/2;es.add(side);
+  scene.environment=pm.fromScene(es,.03).texture;})();
 const camera=new THREE.PerspectiveCamera(45,1,.05,60);
 
 // lights
@@ -105,7 +112,7 @@ const labelTex=canvasTex(256,128,(g,w,h)=>{g.fillStyle='#f5c518';g.fillRect(0,0,
 
 const M=(c,m=.2,r=.6,x={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,metalness:m,roughness:r},x));
 const MAT={
-  paint:M(0xb02020,.45,.32),metal:M(0x8d949c,.8,.35),dark:M(0x3a3f46,.6,.5),block:M(0x4a5058,.7,.45),
+  paint:new THREE.MeshPhysicalMaterial({color:0xa31616,metalness:.55,roughness:.32,clearcoat:1,clearcoatRoughness:.06}),metal:M(0x8d949c,.8,.35),dark:M(0x3a3f46,.6,.5),block:M(0x4a5058,.7,.45),
   cover:M(0x6d757e,.75,.3),black:M(0x161718,.1,.7),rubber:M(0x0d0d0d,0,.95),plastic:M(0x24272b,.05,.6),
   yellow:M(0xf5c518,.1,.4),red:M(0xc0392b,.2,.5),chrome:M(0xd5dade,1,.15),
   glass:M(0x9fc3e6,.1,.05,{transparent:true,opacity:.22}),
@@ -131,9 +138,17 @@ const H=Math.PI/2;
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),MAT.floor);floor.rotation.x=-H;floor.position.y=-.6;floor.receiveShadow=true;scene.add(floor);
 
 // ---------- body ----------
-box(.22,.42,1.95,MAT.paint,[-1.0,.1,.15]);  // fenders
-box(.22,.42,1.95,MAT.paint,[1.0,.1,.15]);
-box(.22,.06,1.95,MAT.paint,[-1.0,.34,.15]);box(.22,.06,1.95,MAT.paint,[1.0,.34,.15]);
+// shaped body panels: side profiles (z,y) extruded across the car
+function profile(pts,width,mat,x0,part){
+  const sh=new THREE.Shape();sh.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)sh.lineTo(pts[i][0],pts[i][1]);sh.closePath();
+  const g=new THREE.ExtrudeGeometry(sh,{depth:width,bevelEnabled:true,bevelThickness:.025,bevelSize:.025,bevelSegments:3,curveSegments:8});
+  const m=new THREE.Mesh(g,mat.clone());m.rotation.y=-Math.PI/2;m.position.x=x0;m.castShadow=true;m.receiveShadow=true;root.add(m);
+  if(part){m.userData.part=part;pickables.push(m);}return m;
+}
+function arch(zc,r,yb,dir){const a0=Math.asin(Math.min(1,(yb+.25)/r)),out=[];const n=10;for(let i=0;i<=n;i++){const a=dir>0?a0+(Math.PI-2*a0)*i/n:Math.PI-a0-(Math.PI-2*a0)*i/n;out.push([zc+r*Math.cos(a),-.25+r*Math.sin(a)]);}return out;}
+// front fenders with wheel arches
+const fenderPts=[[1.28,-.12],...arch(.5,.43,-.12,1),[-.8,-.12],[-.8,.42],[.9,.4],[1.2,.3],[1.28,.06]];
+profile(fenderPts,.22,MAT.paint,-.88);profile(fenderPts,.22,MAT.paint,1.1);
 box(1.8,.03,1.85,MAT.black,[0,-.32,.15]); // bay floor / splash shield
 box(2.24,.3,.22,MAT.paint,[0,-.02,1.18]); // bumper
 box(1.0,.14,.04,MAT.black,[0,-.04,1.30]);  // grille
@@ -142,16 +157,26 @@ box(.4,.12,.08,MAT.light,[-.74,.15,1.17]);box(.4,.12,.08,MAT.light,[.74,.15,1.17
 box(1.8,.12,.06,MAT.paint,[0,.2,1.08]); // core support top
 box(1.8,.5,.06,MAT.dark,[0,.05,-.78]); // firewall
 box(2.2,.1,.32,MAT.plastic,[0,.33,-.9]); // cowl
-const ws=box(2.0,1.2,.02,MAT.glass,[0,.82,-1.25],root,null,[-1.05,0,0]);ws.castShadow=false;
-box(2.2,.06,.06,MAT.paint,[0,1.38,-1.62]);
+// cabin: lower body, glass greenhouse, roof, mirrors, handles, lights
+profile([[-.8,.5],[-3.0,.58],[-3.3,.52],[-3.38,.15],[-3.36,-.12],...arch(-2.3,.43,-.12,-1),[-.8,-.12]],1.98,MAT.paint,.99);
+const GLASS=new THREE.MeshPhysicalMaterial({color:0x10161d,metalness:.2,roughness:.05,clearcoat:1,clearcoatRoughness:.02});
+profile([[-.95,.5],[-1.62,1.1],[-2.5,1.1],[-3.02,.6],[-3.02,.5]],1.74,GLASS,.87);
+profile([[-1.62,1.1],[-2.5,1.1],[-2.5,1.15],[-1.66,1.15]],1.62,MAT.paint,.81);
+box(.02,.6,.08,MAT.black,[-.88,.82,-2.05]);box(.02,.6,.08,MAT.black,[.88,.82,-2.05]); // B-pillars
+[-1,1].forEach(sd=>{box(.1,.1,.2,MAT.paint,[sd*1.1,.66,-1.0]);box(.02,.07,.16,MAT.glass,[sd*1.155,.66,-1.0]);
+  box(.02,.03,.14,MAT.chrome,[sd*1.015,.42,-1.55]);box(.02,.03,.14,MAT.chrome,[sd*1.015,.42,-2.45]);
+  box(.005,.5,.01,MAT.black,[sd*1.012,.2,-2.05]);
+  box(.42,.1,.05,M(0xff2a2a,0,.3,{emissive:0xaa0000,emissiveIntensity:.6}),[sd*.68,.45,-3.38]);});
+box(1.9,.1,.06,MAT.black,[0,-.06,-3.39]); // rear lower trim
+box(.3,.08,.02,MAT.chrome,[0,.3,-3.4]);   // badge/plate light
 // wheels
-function wheel(x){const g=new THREE.Group();g.position.set(x,-.25,.5);root.add(g);
+function wheel(x,z=.5){const g=new THREE.Group();g.position.set(x,-.25,z);root.add(g);
   cyl(.35,.35,.26,MAT.rubber,[0,0,0],g,'wheels',[0,0,H],40);
   cyl(.22,.22,.27,MAT.metal,[0,0,0],g,'wheels',[0,0,H],32);
   cyl(.19,.19,.04,MAT.dark,[x>0?-.12:.12,0,0],g,'wheels',[0,0,H],32); // rotor
   box(.06,.14,.12,MAT.red,[x>0?-.14:.14,.16,0],g,'wheels');            // caliper
 }
-wheel(-1.0);wheel(1.0);
+wheel(-1.0);wheel(1.0);wheel(-1.0,-2.3);wheel(1.0,-2.3);
 
 // ---------- hood (open) ----------
 const hinge=new THREE.Group();hinge.position.set(0,.38,-.72);hinge.rotation.x=-1.18;root.add(hinge);
@@ -244,18 +269,20 @@ const labelBox=document.getElementById('labels');const labelEls={};
 let showLabels=true;
 
 // ---------- camera orbit ----------
-const target=new THREE.Vector3(0,.12,.1);
-let theta=.55,phi=.92,radius=3.7;const DEF={theta:.55,phi:.92,radius:3.7};
+const target=new THREE.Vector3(0,.15,-.9);
+const VIEWS={top:{theta:0,phi:.1,radius:6.4,t:[0,.15,-.9]},bay:{theta:0,phi:.32,radius:3.3,t:[0,.1,.2]},side:{theta:.55,phi:.92,radius:3.7,t:[0,.12,.1]}};
+let theta=0,phi=.1,radius=6.4;let viewName='top';
+function setView(n){viewName=n;const v=VIEWS[n];theta=v.theta;phi=v.phi;radius=v.radius;target.set(...v.t);updateCam();const b=document.getElementById('bView');if(b)b.textContent={top:'View: top',bay:'View: bay',side:'View: 3/4'}[n];}
 function updateCam(){const r=radius;camera.position.set(target.x+r*Math.sin(phi)*Math.sin(theta),target.y+r*Math.cos(phi),target.z+r*Math.sin(phi)*Math.cos(theta));camera.lookAt(target);}
 const pointers=new Map();let downPos=null,pinch0=null,moved=0;
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});downPos={x:e.clientX,y:e.clientY};moved=0;if(pointers.size===2){const [a,b]=[...pointers.values()];pinch0={d:Math.hypot(a.x-b.x,a.y-b.y),r:radius};}});
 canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const p=pointers.get(e.pointerId);const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;moved+=Math.abs(dx)+Math.abs(dy);
-  if(pointers.size===1){theta-=dx*.008;phi=Math.min(1.45,Math.max(.22,phi-dy*.008));}
-  else if(pointers.size===2&&pinch0){const [a,b]=[...pointers.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);radius=Math.min(6.5,Math.max(1.5,pinch0.r*pinch0.d/d));}
+  if(pointers.size===1){theta-=dx*.008;phi=Math.min(1.45,Math.max(.06,phi-dy*.008));}
+  else if(pointers.size===2&&pinch0){const [a,b]=[...pointers.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);radius=Math.min(8,Math.max(1.5,pinch0.r*pinch0.d/d));}
   updateCam();});
 const up=e=>{if(pointers.size===1&&moved<8&&downPos)pick(e.clientX,e.clientY);pointers.delete(e.pointerId);if(pointers.size<2)pinch0=null;};
 canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);pinch0=null;});
-canvas.addEventListener('wheel',e=>{e.preventDefault();radius=Math.min(6.5,Math.max(1.5,radius*(1+Math.sign(e.deltaY)*.08)));updateCam();},{passive:false});
+canvas.addEventListener('wheel',e=>{e.preventDefault();radius=Math.min(8,Math.max(1.5,radius*(1+Math.sign(e.deltaY)*.08)));updateCam();},{passive:false});
 
 // ---------- picking ----------
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();let selected=null;
@@ -279,7 +306,7 @@ function defaultCard(){card.innerHTML='<h3>Pop the hood</h3><p>Tap the radiator/
 defaultCard();
 (function(){let c={};try{c=JSON.parse(localStorage.getItem('ce_career')||'{}');}catch(e){}$('career').innerHTML='<div><b>'+(c.jobs||0)+'</b><small>Jobs</small></div><div><b>'+(c.fixed||0)+'</b><small>Fixed</small></div><div><b>'+(c.stars||0)+'</b><small>Stars</small></div>';})();
 btn('bLabels',()=>{showLabels=!showLabels;$('bLabels').classList.toggle('on',showLabels);});
-btn('bView',()=>{({theta,phi,radius}=DEF);updateCam();});
+btn('bView',()=>setView({top:'bay',bay:'side',side:'top'}[viewName]));
 
 // ---------- loop ----------
 const v=new THREE.Vector3();const engineBase=engine.position.clone();let t=0;
