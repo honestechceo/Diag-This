@@ -141,6 +141,20 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
 .lcd .val{font-size:26px}
 .scopeIn svg{height:96px}
 .pick{font-size:13px;color:#9aa1ab;margin:6px 2px;line-height:1.4}.pick b{color:#e9ebee}
+.fc{font-size:14px;line-height:1.4}
+.fcNode{background:#1c1f23;border:1px solid #3a3f46;border-left:4px solid #f5c518;border-radius:8px;padding:8px 10px;margin:6px 0;color:#e9ebee}
+.fcNode.end{border-left-color:#7dfc9a;background:#15201a}
+.fcK{font:700 12px "JetBrains Mono",monospace;color:#f5c518}
+.fcNode.end .fcK{color:#7dfc9a}
+.fcBr{margin-left:10px;padding-left:10px;border-left:2px solid #3a3f46}
+.fcBr details{margin-top:4px}
+.fcBr summary{cursor:pointer;list-style:none;padding:2px 0}
+.fcBr summary::-webkit-details-marker{display:none}
+.fcLab{display:inline-block;font:700 12px "JetBrains Mono",monospace;background:#24282d;border:1px solid #f5c518;border-radius:12px;padding:3px 10px;color:#f5c518}
+details[open]>summary .fcLab{background:#f5c518;color:#111}
+.fcLab::before{content:"▸ "}details[open]>summary .fcLab::before{content:"▾ "}
+.fcDone{display:inline-block;margin-top:5px;font:700 11px "JetBrains Mono",monospace;color:#7dfc9a;background:#173322;border:1px solid #2f6b45;border-radius:6px;padding:1px 6px}
+.fcGo{display:inline-block;margin:6px 0 0 6px;background:transparent;border:1px solid #3a3f46;color:#cfd3d8;border-radius:8px;padding:4px 9px;font:600 12px Barlow,system-ui,sans-serif}
 </style>
 </head>
 <body>
@@ -422,7 +436,7 @@ function clearLeads(){leads={red:null,blk:'bat_n',A:null,B:null};render();}
 function placeLead(k){
   beep(1500,.03);
   if((active==='red'||active==='blk')&&TP[k].kv){addLog('kV pickup is a scope-only connection.','>');return;}
-  leads[active]=k;
+  leads[active]=k;job.probed=job.probed||{};job.probed[k]=1;
   if(running()&&TP[k].cyl){if((active==='A'||active==='B')&&TP[k].kv)job.flags.kv=true;else if(!TP[k].kv)job.flags.primary=true;}
   render();logReading();
 }
@@ -541,6 +555,43 @@ const HINTS={
  fuse:['It only cranks. Scope a coil\'s pin 3: is the trigger there while cranking? Then check pin 1 for power.','No power at any coil\'s pin 1? Check both sides of fuse F7.'],
 };
 
+
+/* ===== DIAGNOSTIC FLOW CHART ===== */
+function fcRender(n,depth){
+  const done=(n.tp||[]).some(t=>job.probed&&job.probed[t]);
+  let h='<div class="fcNode'+(n.end?' end':'')+'"><div>'+(n.end?'<span class="fcK">→</span> ':'<span class="fcK">?</span> ')+(n.q||n.end)+'</div>';
+  if(done)h+='<span class="fcDone">✓ measured</span>';
+  if(n.loc)h+='<button class="fcGo" onclick="fcGo(\''+n.loc+'\')">Go measure ›</button>';
+  h+='</div>';
+  if(n.br){h+='<div class="fcBr">'+n.br.map(([lab,child])=>'<details'+(depth<1?' open':'')+'><summary><span class="fcLab">'+lab+'</span></summary>'+fcRender(child,depth+1)+'</details>').join('')+'</div>';}
+  return h;
+}
+function openFlow(){
+  openModal('<h3>Diagnostic flow chart</h3><p>Start at the top. Answer each question with a measurement, then tap the matching answer to open the next step. <b>✓ measured</b> marks the checks you\'ve already made on this job.</p><div class="fc">'+fcRender(FLOW,0)+'</div><button class="ghost" onclick="closeModal()">Close</button>');
+}
+
+const P=n=>[1,2,3,4].map(i=>'c'+i+n);
+const FLOW={q:'Does the engine start and run?',br:[
+ ['Cranks, won\'t start',{q:'While cranking, is there an IGT pulse at a coil\'s pin 3 (scope)?',tp:P('p3'),loc:'dia',br:[
+   ['No',{end:'No trigger from the ECM at any coil. Look at the crank sensor and ECM inputs (outside this lab).'}],
+   ['Yes',{q:'Is there power at coil pin 1 while cranking?',tp:P('p1'),loc:'dia',br:[
+     ['No, on every coil',{end:'The shared coil feed is dead. Check both sides of fuse F7.',tp:['f7a','f7b'],loc:'dia'}],
+     ['Yes',{end:'Trigger and power are there. Use the spark tester and check the secondary (kV) for each coil.'}]]}]]}],
+ ['Runs, but misfires',{q:'On the scan tool, is the misfire on one cylinder or random/several?',br:[
+   ['Random / several',{q:'Scope a coil\'s pin 2 (ground) with the engine running. Does it rise above about 1 V while the coil charges?',tp:P('p2').concat(['g2']),loc:'dia',br:[
+     ['Yes',{end:'The ground all coils share (G2) has high resistance. Clean and repair it.'}],
+     ['No',{end:'Ignition grounds are good. Look at fuel, vacuum leaks or compression (outside this lab).'}]]}],
+   ['One cylinder',{q:'Is there a clean 5 V IGT pulse at that coil\'s pin 3?',tp:P('p3'),loc:'dia',br:[
+     ['No',{q:'Is the pulse there at the matching ECM IGT pin?',tp:['e1','e2','e3','e4'],loc:'dia',br:[
+       ['Yes',{end:'Pulse at the ECM, none at the coil: the IGT wire between them is open.'}],
+       ['No',{end:'The ECM isn\'t sending the trigger. Check its powers, grounds and crank/cam inputs.'}]]}],
+     ['Yes',{q:'Does that coil\'s pin 1 power hold steady while charging (only a small dip, like the good coils)?',tp:P('p1'),loc:'dia',br:[
+       ['No, it sags',{end:'High resistance in that coil\'s power feed or connector. It reads fine on a meter with no load; the scope under load finds it.'}],
+       ['Yes',{q:'Swap the coil with another cylinder. Does the misfire move with it?',br:[
+         ['Yes',{end:'The misfire followed the coil: the ignition coil has failed.'}],
+         ['No',{end:'The coil is good. Check the spark plug: a low firing line and long, low spark line on the kV trace point to a fouled plug.'}]]}]]}]]}]]}]]};
+function fcGo(){closeModal();setLead('A');toDiagram();}
+
 /* ===== GUIDED FLOW ===== */
 let guideOpen=true;
 function renderGuide(){
@@ -550,7 +601,7 @@ function renderGuide(){
   const n=cur<0?GUIDE.length:cur;
   let h='<button class="gHead" onclick="guideOpen=!guideOpen;renderGuide()">Diagnostic steps <span>'+n+'/'+GUIDE.length+' done '+(guideOpen?'▾':'▸')+'</span></button>';
   if(guideOpen){
-    h+='<div class="gBody">'+GUIDE.map((g,i)=>{const st=g.done()?'done':i===cur?'cur':'';
+    h+='<div class="gBody"><div class="gBtns" style="margin:0 0 6px"><button class="alt" onclick="openFlow()">📋 Open the diagnostic flow chart</button></div>'+GUIDE.map((g,i)=>{const st=g.done()?'done':i===cur?'cur':'';
       return '<div class="gStep '+st+'"><div class="gNum">'+(g.done()?'✓':i+1)+'</div><div><b>'+g.t+'</b>'+(i===cur?'<p>'+g.d+'</p><div class="gBtns"><button onclick="GUIDE['+i+'].go()">'+g.btn+'</button></div>':'')+'</div></div>';}).join('');
     if(cur<0)h+='<p style="margin:8px 0 0;color:#7dfc9a;font-size:14px">All steps done. Tap <b>Close job</b> to see your score.</p>';
     const hs=HINTS[job.orig]||[];

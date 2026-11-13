@@ -167,6 +167,20 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;margin:0;letter-spacing:.02em
 .knob{width:48px;height:48px;font-size:17px}
 .dmmIn{padding:6px 10px}
 .vh span{display:none}
+.fc{font-size:14px;line-height:1.4}
+.fcNode{background:#1c1f23;border:1px solid #3a3f46;border-left:4px solid #f5c518;border-radius:8px;padding:8px 10px;margin:6px 0;color:#e9ebee}
+.fcNode.end{border-left-color:#7dfc9a;background:#15201a}
+.fcK{font:700 12px "JetBrains Mono",monospace;color:#f5c518}
+.fcNode.end .fcK{color:#7dfc9a}
+.fcBr{margin-left:10px;padding-left:10px;border-left:2px solid #3a3f46}
+.fcBr details{margin-top:4px}
+.fcBr summary{cursor:pointer;list-style:none;padding:2px 0}
+.fcBr summary::-webkit-details-marker{display:none}
+.fcLab{display:inline-block;font:700 12px "JetBrains Mono",monospace;background:#24282d;border:1px solid #f5c518;border-radius:12px;padding:3px 10px;color:#f5c518}
+details[open]>summary .fcLab{background:#f5c518;color:#111}
+.fcLab::before{content:"▸ "}details[open]>summary .fcLab::before{content:"▾ "}
+.fcDone{display:inline-block;margin-top:5px;font:700 11px "JetBrains Mono",monospace;color:#7dfc9a;background:#173322;border:1px solid #2f6b45;border-radius:6px;padding:1px 6px}
+.fcGo{display:inline-block;margin:6px 0 0 6px;background:transparent;border:1px solid #3a3f46;color:#cfd3d8;border-radius:8px;padding:4px 9px;font:600 12px Barlow,system-ui,sans-serif}
 </style>
 </head>
 <body>
@@ -428,7 +442,7 @@ const VIEWS={
   r+=fuse(60,'f11','15','#3d8bff')+fuse(120,'f12','30','#2fbf5b')+fuse(180,'f5','10','#e23b2e');
   // relay
   const RX=280,RY=110;
-  if(relay==='in'){r+='<rect x="'+(RX-34)+'" y="'+(RY-44)+'" width="68" height="88" rx="6" fill="#1b1d20" stroke="#666"/><text x="'+RX+'" y="'+(RY-12)+'" text-anchor="middle" style="font:700 12px \'JetBrains Mono\';fill:#ddd">FAN</text><text x="'+RX+'" y="'+(RY+6)+'" text-anchor="middle" style="font:600 9px \'JetBrains Mono\';fill:#888">RELAY</text><text x="'+RX+'" y="'+(RY+64)+'" text-anchor="middle" class="tl">relay installed · pins hidden</text>';}
+  if(relay==='in'){r+='<rect x="'+(RX-34)+'" y="'+(RY-44)+'" width="68" height="88" rx="6" fill="#1b1d20" stroke="#666"/><text x="'+RX+'" y="'+(RY-12)+'" text-anchor="middle" style="font:700 12px \'JetBrains Mono\';fill:#ddd">FAN</text><text x="'+RX+'" y="'+(RY+6)+'" text-anchor="middle" style="font:600 9px \'JetBrains Mono\';fill:#888">RELAY</text><text x="'+RX+'" y="'+(RY+64)+'" text-anchor="middle" class="tl">terminals hidden: tap the relay button below</text>';}
   else{
     const lab=relay==='adapter'?'test adapter':'empty socket';
     r+='<rect x="'+(RX-40)+'" y="'+(RY-50)+'" width="80" height="100" rx="6" fill="'+(relay==='adapter'?'#2a2e33':'#0b0c0e')+'" stroke="#666"/>';
@@ -443,7 +457,7 @@ const VIEWS={
   return header('Underhood fuse & relay box','Fuses have two test points on top. Pull the relay, or install a test adapter, to reach its terminals.')+
    '<div class="vbox">'+W+DEFS+'<rect width="360" height="240" fill="#0c0e10"/><rect x="14" y="40" width="332" height="180" rx="12" fill="#18191b" stroke="#333"/>'+r+'</svg></div>'+
    '<div class="vbtns"><button onclick="toggleFuse()">'+(S.fuseIn?'Pull F12':'Reinstall F12')+'</button>'+
-   '<button onclick="cycleRelay()">Relay: '+({in:'installed',adapter:'test adapter',out:'pulled'})[relay]+' ▸</button>'+
+   '<button onclick="cycleRelay()">'+({in:'Show relay terminals (test adapter)',adapter:'Pull the relay',out:'Reinstall the relay'})[relay]+'</button>'+
    (relay==='out'?'<button onclick="toggleJumper()">'+(S.jumper?'Remove jumper':'Jumper 30→87')+'</button>':'')+'</div>'+
    (!S.fuseIn?'<div class="vnote">F12 pulled: '+(job.fault==='fuse'?'element is <b>broken</b>. The fuse is blown.':'element looks intact.')+' With F12 pulled, an ammeter across its two cavities measures fan circuit current.</div>':'');
  },
@@ -498,21 +512,21 @@ const DIAGRAM='<svg viewBox="0 0 400 470" xmlns="http://www.w3.org/2000/svg"><re
 '<path stroke="#3d8bff" d="M220 262 V340"/><path stroke="#777" d="M220 430 V455"/><path stroke="#2fbf5b" d="M280 262 V300 H318"/><path stroke="#777" d="M40 92 V108"/></g>'+
 '<g style="font:600 9px JetBrains Mono" fill="#cfd3d8"><text x="18" y="30">BATT</text><text x="128" y="30">F12 30A</text><text x="128" y="128">F5 10A</text><text x="80" y="96">IGN</text>'+
 '<text x="226" y="70">RED/WHT</text><text x="200" y="104">PNK</text><text x="226" y="300">BLU</text><text x="226" y="448">BLK → G1</text><text x="284" y="318">GRN/YEL</text>'+
-'<text x="204" y="150">30</text><text x="286" y="150">86</text><text x="204" y="258">87</text><text x="286" y="258">85</text><text x="190" y="336">C1-1</text><text x="190" y="428">C1-2</text><text x="322" y="296">C3-45</text></g>'+
+'</g>'+
 '<rect x="125" y="30" width="45" height="20" rx="5" fill="#1a1e23" stroke="#8c949d"/><rect x="125" y="100" width="45" height="20" rx="5" fill="#1a1e23" stroke="#8c949d"/>'+
 '<rect x="18" y="46" width="44" height="44" rx="4" fill="#1a1e23" stroke="#8c949d"/>'+
-'<rect x="200" y="138" width="100" height="124" rx="8" fill="#1a1e23" stroke="#8c949d" stroke-dasharray="5 3"/><text x="250" y="204" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#e9ebee">FAN RELAY</text>'+
+'<rect x="200" y="138" width="100" height="124" rx="8" fill="#1a1e23" stroke="#8c949d" stroke-dasharray="5 3"/><text x="194" y="196" text-anchor="end" style="font:700 10px JetBrains Mono;fill:#e9ebee">FAN</text><text x="194" y="209" text-anchor="end" style="font:700 10px JetBrains Mono;fill:#e9ebee">RELAY</text>'+
 '<line x1="220" y1="150" x2="220" y2="178" stroke="#cfd3d8" stroke-width="2"/><line x1="220" y1="178" x2="234" y2="218" stroke="#cfd3d8" stroke-width="2"/><line x1="220" y1="222" x2="220" y2="250" stroke="#cfd3d8" stroke-width="2"/>'+
 '<rect x="270" y="168" width="20" height="56" rx="3" fill="#2a2e33" stroke="#cfd3d8"/>'+
 '<circle cx="220" cy="385" r="42" fill="#1a1e23" stroke="#8c949d"/><text x="220" y="390" text-anchor="middle" style="font:700 12px JetBrains Mono;fill:#e9ebee">M</text><text x="270" y="390" style="font:700 10px JetBrains Mono;fill:#e9ebee">FAN</text>'+
 '<rect x="318" y="280" width="72" height="90" rx="8" fill="#1a1e23" stroke="#8c949d"/><text x="354" y="330" text-anchor="middle" style="font:700 11px JetBrains Mono;fill:#e9ebee">ECM</text>'+
-'<g stroke="#8c949d" stroke-width="2"><line x1="208" y1="458" x2="232" y2="458"/><line x1="213" y1="463" x2="227" y2="463"/><line x1="30" y1="110" x2="50" y2="110"/><line x1="35" y1="115" x2="45" y2="115"/></g></svg>';
+'<g stroke="#8c949d" stroke-width="2"><line x1="208" y1="458" x2="232" y2="458"/><line x1="213" y1="463" x2="227" y2="463"/><line x1="30" y1="110" x2="50" y2="110"/><line x1="35" y1="115" x2="45" y2="115"/></g><circle cx="220" cy="138" r="4" fill="#f5c518"/><rect x="187" y="131" width="22" height="15" rx="4" fill="#f5c518"/><text x="198" y="142" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#111">30</text><circle cx="280" cy="138" r="4" fill="#f5c518"/><rect x="291" y="131" width="22" height="15" rx="4" fill="#f5c518"/><text x="302" y="142" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#111">86</text><circle cx="220" cy="262" r="4" fill="#f5c518"/><rect x="187" y="255" width="22" height="15" rx="4" fill="#f5c518"/><text x="198" y="266" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#111">87</text><circle cx="280" cy="262" r="4" fill="#f5c518"/><rect x="291" y="255" width="22" height="15" rx="4" fill="#f5c518"/><text x="302" y="266" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#111">85</text><circle cx="220" cy="340" r="4" fill="#f5c518"/><rect x="172" y="333" width="36" height="15" rx="4" fill="#f5c518"/><text x="190" y="344" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#111">C1-1</text><circle cx="220" cy="430" r="4" fill="#f5c518"/><rect x="172" y="423" width="36" height="15" rx="4" fill="#f5c518"/><text x="190" y="434" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#111">C1-2</text><circle cx="318" cy="300" r="4" fill="#f5c518"/><rect x="293" y="293" width="43" height="15" rx="4" fill="#f5c518"/><text x="314" y="304" text-anchor="middle" style="font:700 10px JetBrains Mono;fill:#111">C3-45</text></svg>';
 
 /* ===================== ACTIONS ===================== */
 function go(k){loc=k;render();}
 function setActive(c){active=c;render();}
 function probe(id){
-  beep(1500,.03);M.leads[active]=id;M.clamp=false;
+  beep(1500,.03);M.leads[active]=id;job.probed=job.probed||{};job.probed[id]=1;M.clamp=false;
   const key=[M.leads.red,M.leads.blk,M.dial,M.red,JSON.stringify(S),job.fault].join('|');
   render();
   if(M.leads.red&&M.leads.blk){const rr=M.leads.red;if(S.key&&S.cmd&&(rr==='c1p'||rr==='c1n'))job.flags.fan=true;if(['f12a','f12b','r30','r87','r85','r86','ecm45','g1','body'].includes(rr)||(rr==='c1n'&&M.leads.blk!=='bat_n'))job.flags.trace=true;}
@@ -605,6 +619,43 @@ const HINTS={
  motor:['C1 has power on cavity 1 and a ground on cavity 2, but nothing turns. Check current with the amp clamp (Meter dial).','0 A with good power and ground means the motor is open. Confirm: unplug C1, key off, ohms across the fan side.'],
 };
 
+
+/* ===== DIAGNOSTIC FLOW CHART ===== */
+function fcRender(n,depth){
+  const done=(n.tp||[]).some(t=>job.probed&&job.probed[t]);
+  let h='<div class="fcNode'+(n.end?' end':'')+'"><div>'+(n.end?'<span class="fcK">→</span> ':'<span class="fcK">?</span> ')+(n.q||n.end)+'</div>';
+  if(done)h+='<span class="fcDone">✓ measured</span>';
+  if(n.loc)h+='<button class="fcGo" onclick="fcGo(\''+n.loc+'\')">Go measure ›</button>';
+  h+='</div>';
+  if(n.br){h+='<div class="fcBr">'+n.br.map(([lab,child])=>'<details'+(depth<1?' open':'')+'><summary><span class="fcLab">'+lab+'</span></summary>'+fcRender(child,depth+1)+'</details>').join('')+'</div>';}
+  return h;
+}
+function openFlow(){
+  openModal('<h3>Diagnostic flow chart</h3><p>Start at the top. Answer each question with a measurement, then tap the matching answer to open the next step. <b>✓ measured</b> marks the checks you\'ve already made on this job.</p><div class="fc">'+fcRender(FLOW,0)+'</div><button class="ghost" onclick="closeModal()">Close</button>');
+}
+
+const FLOW={q:'Key ON, fan commanded ON with the scan tool. What does the fan do?',br:[
+ ['Runs slowly',{end:'Do a ground-side voltage drop: red on C1-2, black on battery −, fan running. Over 0.2 V means the ground (G1) has high resistance.',tp:['c1n','g1','body'],loc:'fan'}],
+ ['Runs full speed',{end:'Fan circuit works. If the engine still overheats, check the coolant temp signal and the fan command logic.'}],
+ ['Doesn\'t run',{q:'12 V at fan C1 cavity 1 (fan commanded ON)?',tp:['c1p'],loc:'fan',br:[
+   ['Yes',{q:'Is C1 cavity 2 grounded (under 0.2 V to battery −) with the fan commanded?',tp:['c1n'],loc:'fan',br:[
+     ['Yes',{end:'Power and ground are both good at the fan, so the motor is open. Confirm: 0 A on the amp clamp, or O.L ohms across the motor (unplugged, key off).'}],
+     ['No',{end:'Bad ground. Check across the G1 eyelet to body metal, then clean and repair.',tp:['g1','body'],loc:'ground'}]]}],
+   ['No',{q:'Does the relay click when the fan is commanded ON?',br:[
+     ['Yes, it clicks',{q:'12 V at relay 87 (relay on the test adapter, fan commanded)?',tp:['r87'],loc:'fusebox',br:[
+       ['Yes',{end:'Power leaves the relay but never reaches the fan, so the BLU wire between 87 and C1-1 is open. Confirm with ohms (key off, relay pulled).'}],
+       ['No',{q:'12 V at relay 30?',tp:['r30'],loc:'fusebox',br:[
+         ['Yes',{end:'Power in at 30, nothing out at 87 even though it clicks: the relay contacts aren\'t closing. Bench test the relay.'}],
+         ['No',{end:'No supply to the relay. Check both test points on F12: power on one side only means the fuse is open.',tp:['f12a','f12b'],loc:'fusebox'}]]}]]}],
+     ['No click',{q:'12 V at relay 86 with the key ON?',tp:['r86'],loc:'fusebox',br:[
+       ['No',{end:'No ignition feed to the relay coil. Check F5 and the ignition circuit.',tp:['f5a','f5b'],loc:'fusebox'}],
+       ['Yes',{q:'What does relay 85 read with the fan commanded ON?',tp:['r85'],loc:'fusebox',br:[
+         ['About 0 V',{end:'86 has power but none comes through the coil to 85: the relay coil is open. Bench test (O.L across 85–86).'}],
+         ['About 12 V',{q:'Now check ECM connector C3 pin 45 (GRN/YEL). What does it read?',tp:['ecm45'],loc:'ecm',br:[
+           ['About 0 V',{end:'12 V at one end of the GRN/YEL wire and 0 V at the other: that wire is open between relay 85 and ECM pin 45.'}],
+           ['About 12 V',{end:'The wire is good but the ECM isn\'t pulling it to ground: check the ECM command and driver (and its powers and grounds) before condemning it.'}]]}]]}]]}]]}]]}]]};
+function fcGo(loc){closeModal();go(loc);setActive('red');document.getElementById('view').scrollIntoView({behavior:'smooth'});}
+
 /* ===== GUIDED FLOW ===== */
 let guideOpen=true;
 function renderGuide(){
@@ -614,7 +665,7 @@ function renderGuide(){
   const n=cur<0?GUIDE.length:cur;
   let h='<button class="gHead" onclick="guideOpen=!guideOpen;renderGuide()">Diagnostic steps <span>'+n+'/'+GUIDE.length+' done '+(guideOpen?'▾':'▸')+'</span></button>';
   if(guideOpen){
-    h+='<div class="gBody">'+GUIDE.map((g,i)=>{const st=g.done()?'done':i===cur?'cur':'';
+    h+='<div class="gBody"><div class="gBtns" style="margin:0 0 6px"><button class="alt" onclick="openFlow()">📋 Open the diagnostic flow chart</button></div>'+GUIDE.map((g,i)=>{const st=g.done()?'done':i===cur?'cur':'';
       return '<div class="gStep '+st+'"><div class="gNum">'+(g.done()?'✓':i+1)+'</div><div><b>'+g.t+'</b>'+(i===cur?'<p>'+g.d+'</p><div class="gBtns"><button onclick="GUIDE['+i+'].go()">'+g.btn+'</button></div>':'')+'</div></div>';}).join('');
     if(cur<0)h+='<p style="margin:8px 0 0;color:#7dfc9a;font-size:14px">All steps done. Tap <b>Close job</b> to see your score.</p>';
     const hs=HINTS[job.orig]||[];

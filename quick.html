@@ -232,7 +232,7 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;letter-spacing:.02em;margin:0
 
       <div class="bay">
         <div class="hint" id="hint">TAP A PART TO INSPECT IT</div>
-        <svg id="bay" viewBox="0 0 400 440" xmlns="http://www.w3.org/2000/svg">
+        <svg id="bay" viewBox="0 -175 400 615" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="insul" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#20242a"/><circle cx="4" cy="4" r="1.1" fill="#2e333a"/></pattern>
             <pattern id="fins" width="4" height="40" patternUnits="userSpaceOnUse"><rect width="4" height="40" fill="#3b4048"/><rect width="1.4" height="40" fill="#1f2328"/></pattern>
@@ -248,11 +248,46 @@ h1,h2,h3{font-family:"Barlow Condensed",sans-serif;letter-spacing:.02em;margin:0
             <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000" flood-opacity=".7"/></filter>
           </defs>
 
+          <!-- overhead: ground, shadow, cabin -->
+          <defs>
+            <pattern id="concrete" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="#24272b"/><circle cx="7" cy="9" r=".8" fill="#2e3237"/><circle cx="29" cy="22" r=".7" fill="#1d2023"/><circle cx="18" cy="34" r=".9" fill="#2c3035"/><path d="M0 39.5H40" stroke="#1b1e21"/></pattern>
+            <linearGradient id="roofG" x1="0" x2="1"><stop offset="0" stop-color="#6a1010"/><stop offset=".22" stop-color="#b22424"/><stop offset=".5" stop-color="#c83a3a"/><stop offset=".78" stop-color="#b22424"/><stop offset="1" stop-color="#6a1010"/></linearGradient>
+            <linearGradient id="glassG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a3a4a"/><stop offset=".55" stop-color="#0f161e"/><stop offset="1" stop-color="#1c2732"/></linearGradient>
+            <linearGradient id="fadeTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0b0d"/><stop offset="1" stop-color="#0a0b0d" stop-opacity="0"/></linearGradient>
+            <filter id="carShadow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="7"/></filter>
+          </defs>
+          <rect x="0" y="-175" width="400" height="615" fill="url(#concrete)"/>
+          <rect x="12" y="-175" width="376" height="620" rx="26" fill="#000" opacity=".55" filter="url(#carShadow)"/>
+          <!-- body sides continue past the doors -->
+          <rect x="20" y="-175" width="30" height="270" fill="url(#paint)"/>
+          <rect x="350" y="-175" width="30" height="270" fill="url(#paint)" transform="scale(-1,1) translate(-730,0)"/>
+          <path d="M20 -40 H50 M350 -40 H380 M20 -150 H50 M350 -150 H380" stroke="#3a0b0b" stroke-width="1.5"/>
+          <rect x="36" y="-100" width="10" height="3" rx="1.5" fill="#d9dde2"/><rect x="354" y="-100" width="10" height="3" rx="1.5" fill="#d9dde2"/>
+          <!-- cabin: side glass, A-pillars, roof, windshield -->
+          <rect x="48" y="-175" width="22" height="178" fill="url(#glassG)"/>
+          <rect x="330" y="-175" width="22" height="178" fill="url(#glassG)"/>
+          <polygon points="48,6 62,6 84,-108 70,-108" fill="url(#paint)"/>
+          <polygon points="352,6 338,6 316,-108 330,-108" fill="url(#paint)"/>
+          <rect x="70" y="-175" width="260" height="72" rx="10" fill="url(#roofG)"/>
+          <rect x="74" y="-175" width="3" height="68" fill="#2a0707" opacity=".6"/><rect x="323" y="-175" width="3" height="68" fill="#2a0707" opacity=".6"/>
+          <polygon points="62,6 338,6 316,-106 84,-106" fill="url(#glassG)"/>
+          <polygon points="120,-100 160,-100 112,4 72,4" fill="#fff" opacity=".07"/>
+          <polygon points="178,-100 196,-100 150,4 132,4" fill="#fff" opacity=".05"/>
+          <path d="M120 2 Q 170 -18 210 -6 M200 2 Q 250 -18 292 -6" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- cowl panel below the windshield -->
+          <rect x="50" y="2" width="300" height="42" fill="#1a1d21"/>
+          <g fill="#0d0f11"><rect x="80" y="14" width="70" height="4" rx="2"/><rect x="80" y="24" width="70" height="4" rx="2"/><rect x="250" y="14" width="70" height="4" rx="2"/><rect x="250" y="24" width="70" height="4" rx="2"/></g>
+          <circle cx="122" cy="8" r="4" fill="#2a2e33"/><circle cx="212" cy="8" r="4" fill="#2a2e33"/>
+          <!-- side mirrors -->
+          <g><path d="M20 -86 L4 -82 Q0 -72 6 -64 L20 -66 Z" fill="url(#paint)"/><path d="M8 -79 L18 -81 L18 -69 L9 -68 Z" fill="url(#glassG)"/></g>
+          <g><path d="M380 -86 L396 -82 Q400 -72 394 -64 L380 -66 Z" fill="url(#paint)"/><path d="M392 -79 L382 -81 L382 -69 L391 -68 Z" fill="url(#glassG)"/></g>
+          <rect x="0" y="-175" width="400" height="44" fill="url(#fadeTop)"/>
+
           <!-- hood -->
-          <polygon points="70,6 330,6 374,92 26,92" fill="url(#paintV)"/>
-          <polygon points="80,14 320,14 360,88 40,88" fill="url(#insul)"/>
-          <path d="M120 30 L280 30 M100 60 L300 60" stroke="#2a2f36" stroke-width="2"/>
-          <rect x="190" y="70" width="20" height="10" rx="2" fill="#3a3f46"/>
+          <polygon points="50,40 350,40 376,92 24,92" fill="url(#paintV)"/>
+          <polygon points="60,46 340,46 362,88 38,88" fill="url(#insul)"/>
+          <path d="M90 66 L310 66" stroke="#2a2f36" stroke-width="2"/>
+          <rect x="190" y="76" width="20" height="8" rx="2" fill="#3a3f46"/>
 
           <!-- bay -->
           <rect x="20" y="92" width="360" height="312" rx="6" fill="url(#bayShade)"/>
