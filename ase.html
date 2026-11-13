@@ -71,6 +71,28 @@ h2{font-family:"Barlow Condensed";font-size:24px;text-transform:uppercase;margin
 .topnav::-webkit-scrollbar{display:none}
 .topnav a{flex:none;text-decoration:none;color:#cfd3d8;background:#1c1f23;border:1px solid #33383f;border-radius:20px;padding:7px 12px;font:600 13px Barlow,system-ui,sans-serif}
 .topnav a.on{background:#f5c518;color:#111;border-color:#f5c518}
+
+/* 2026 workshop redesign */
+:root{--bg:#090d13;--panel:#151c27;--panel2:#1d2836;--line:#304053;--text:#f2f6fc;--muted:#a5b4c7;--yellow:#ffca45;--green:#62e8b2;--red:#ff7777}
+html,body{background:radial-gradient(ellipse at 60% -10%,#1a3145 0,#0c1420 45%,#090d13 100%);color:var(--text)}
+.wrap{max-width:880px;padding:14px clamp(12px,3vw,28px) 60px}
+.hazard{height:4px;border-radius:10px}
+h1{font-size:clamp(36px,6vw,52px);letter-spacing:.02em;margin-top:16px}
+h2{letter-spacing:.02em}
+.card,.test,.feat{background:linear-gradient(145deg,#1b2837,#111a26);border-color:#314357;box-shadow:0 10px 30px #0002}
+.card{padding:18px;border-radius:16px}.test{padding:16px;border-radius:16px;transition:transform .15s,border-color .15s}.test:hover{transform:translateY(-2px)}
+.badge{border-radius:12px;background:#0c1521;box-shadow:inset 0 0 16px #ffca4510}
+.feat{padding:18px;min-height:104px;border-radius:16px;transition:transform .15s}.feat:hover:not(:disabled){transform:translateY(-2px)}
+.feat b{font-size:23px}.feat span{font-size:13px;line-height:1.5}
+.big{background:linear-gradient(120deg,#ffd66b,#f5b829);box-shadow:0 5px 20px #f5c51825}
+.big,.ghost,.opt{transition:border-color .15s,transform .15s}.big:hover,.ghost:hover:not(:disabled){transform:translateY(-1px)}
+.opt{padding:16px;border-radius:12px}.opt:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+.sub{color:var(--muted)}.topnav a{background:#182331;border-color:#304053}.topnav a.on{background:var(--yellow);border-color:var(--yellow)}
+.hero{padding:22px;margin:12px 0 18px;background:linear-gradient(115deg,#1d3447,#121c2b 70%);border:1px solid #35516a;border-radius:20px}
+.hero h1{margin:0 0 8px}.hero .sub{margin:0}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px}
+.stat{padding:14px;background:#131e2c;border:1px solid var(--line);border-radius:14px;text-align:center}.stat strong{display:block;color:var(--yellow);font:700 24px 'JetBrains Mono',monospace}.stat small{color:var(--muted)}
+.difficulty{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 16px}.difficulty button{padding:13px 8px;border:1px solid #40536b;background:#1b293a;color:var(--text);border-radius:12px;font-weight:700}.difficulty button.active{border-color:var(--yellow);background:#403516;color:var(--yellow)}.difficulty small{display:block;color:var(--muted);font-size:11px;margin-top:4px;font-weight:400}
+@media(max-width:440px){.stats{gap:5px}.stat{padding:10px 5px}.stat strong{font-size:19px}.difficulty{gap:5px}.difficulty button{font-size:12px}.grid2{gap:8px}.feat{padding:13px}}
 </style>
 </head>
 <body>
@@ -683,12 +705,26 @@ const L='ABCD';
 const isTech=q=>q.o[0]===TA;
 function priority(q){const s=st(q.id);if(s.last===null)return 2;return s.w*2-s.r+(s.last===0?3:0);}
 
+
+// Estimated difficulty tiers based on question wording; not independently ASE-calibrated.
+let difficultyLevel='all';
+function difficultyOf(q){
+ if(q.difficulty)return q.difficulty;
+ const stem=q.q.toLowerCase();
+ const advanced=/technician a|technician b|oscilloscope|waveform|voltage drop|duty cycle|scan tool data|freeze.frame|intermittent|diagnostic procedure|most likely cause|which test|what should.*first|pressure reading|current ramp|fuel trim/.test(stem);
+ const intermediate=/diagnos|symptom|measurement|test shows|reading|when .*engine|while .*engine|what is the cause|why|which component/.test(stem);
+ return advanced?'advanced':intermediate?'intermediate':'beginner';
+}
+function difficultyMatches(q){return difficultyLevel==='all'||difficultyOf(q)===difficultyLevel;}
+function setDifficulty(level){difficultyLevel=level;home();}
+function difficultyControls(){return '<h2 style="margin-top:16px">Choose your level</h2><p class="sub">Estimated from question complexity; all levels use the existing question bank.</p><div class="difficulty">'+[['beginner','Beginner','Fundamentals'],['intermediate','Intermediate','Diagnosis'],['advanced','Advanced','Complex cases']].map(x=>'<button class="'+(difficultyLevel===x[0]?'active':'')+'" onclick="setDifficulty(\''+x[0]+'\')">'+x[1]+'<small>'+x[2]+'</small></button>').join('')+'</div><button class="ghost" onclick="setDifficulty(\'all\')">'+(difficultyLevel==='all'?'✓ ':'')+'All difficulty levels</button>';}
+function levelQuiz(){const ids=Q.filter(difficultyMatches).map(q=>q.id);startQuiz(shuffle(ids).slice(0,20),'Level practice · '+difficultyLevel,false);}
 function home(){
   const total=mastered(Q),bms=Object.keys(store.bm).filter(k=>store.bm[k]).length;
   const answered=Q.filter(q=>st(q.id).last!==null).length;
   $('app').innerHTML='<div class="hazard"></div><nav class="topnav"><a href="index.html">Garage</a><a href="quick.html">Quick jobs</a><a href="fan.html">Fan lab</a><a href="ign.html">Ignition lab</a><a href="ase.html" class="on">ASE prep</a></nav>'+
-   '<h1>ASE <span>Prep</span></h1><p class="sub">'+Q.length+' practice questions for the ASE Automobile tests A1–A8. '+answered+' answered, '+total+' currently correct.</p>'+
-   '<div class="grid2"><button class="feat" onclick="smart()"><b>Smart review</b><span>20 questions, weakest and unseen first</span></button>'+
+   '<div class="hero"><h1>ASE <span>Prep</span></h1><p class="sub">'+Q.length+' practice questions for the ASE Automobile tests A1–A8. '+answered+' answered, '+total+' currently correct.</p></div>'+
+   '<div class="stats"><div class="stat"><strong>'+Q.length+'</strong><small>Questions</small></div><div class="stat"><strong>'+answered+'</strong><small>Attempted</small></div><div class="stat"><strong>'+Math.round(total/Q.length*100)+'%</strong><small>Mastered</small></div></div>'+difficultyControls()+'<button class="big" onclick="levelQuiz()">Practice '+(difficultyLevel==='all'?'all levels':difficultyLevel)+' · 20 questions</button><h2 style="margin-top:20px">Training modes</h2><div class="grid2"><button class="feat" onclick="smart()"><b>Smart review</b><span>20 questions, weakest and unseen first</span></button>'+
    '<button class="feat" onclick="examPick()"><b>Exam simulation</b><span>Timed, weighted like the real test</span></button>'+
    '<button class="feat" onclick="quick10()"><b>Quick 10</b><span>Random mix from every test</span></button>'+
    '<button class="feat" '+(bms?'':'disabled')+' onclick="startQuiz(Object.keys(store.bm).filter(k=>store.bm[k]).map(Number),\'Bookmarked\',false)"><b>Bookmarked</b><span>'+bms+' saved</span></button></div>'+
@@ -701,10 +737,10 @@ function home(){
 }
 let resetArm=0;function confirmReset(){if(Date.now()-resetArm<4000){store={q:{},bm:{},exams:[]};save();return true;}resetArm=Date.now();toast('Tap reset again within 4 seconds to erase progress.');return false;}
 function toast(t){const d=document.createElement('div');d.className='why';d.style.position='fixed';d.style.left='12px';d.style.right='12px';d.style.bottom='12px';d.style.zIndex=9;d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600);}
-function smart(){const ids=Q.slice().sort((a,b)=>priority(b)-priority(a)||Math.random()-.5).slice(0,20).map(q=>q.id);startQuiz(ids,'Smart review',false);}
-function quick10(){startQuiz(shuffle(Q.map(q=>q.id)).slice(0,10),'Quick 10',false);}
+function smart(){const ids=Q.filter(difficultyMatches).slice().sort((a,b)=>priority(b)-priority(a)||Math.random()-.5).slice(0,20).map(q=>q.id);startQuiz(ids,'Smart review',false);}
+function quick10(){startQuiz(shuffle(Q.filter(difficultyMatches).map(q=>q.id)).slice(0,10),'Quick 10',false);}
 function testView(k){
-  const T=TESTS[k],qs=Q.filter(q=>q.t===k);
+  const T=TESTS[k],qs=Q.filter(q=>q.t===k&&difficultyMatches(q));
   $('app').innerHTML='<div class="hazard"></div><button class="back" onclick="home()">← All tests</button>'+
    '<h1>'+k+' · <span>'+T.name+'</span></h1><p class="sub">Real test: '+T.scored+' scored questions in '+T.time+' minutes. Each content area shows how many scored questions it gets on the real test.</p>'+
    (T.lab?'<a class="lablink" href="'+T.lab[0]+'">🔧 <span>Hands-on: <b>'+T.lab[1]+'</b> →</span></a>':'')+
