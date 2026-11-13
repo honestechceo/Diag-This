@@ -67,6 +67,10 @@ h2{font-family:"Barlow Condensed";font-size:24px;text-transform:uppercase;margin
 .qgrid button{background:#16301f;border:1px solid #2f6b45;color:var(--text);border-radius:8px;padding:10px 0;font:700 13px "JetBrains Mono"}
 .qgrid button.un{background:transparent;border-color:var(--line)}
 .qgrid button.fl{background:#3a3410;border-color:var(--yellow)}
+.topnav{display:flex;gap:6px;overflow-x:auto;margin:8px 0 4px;scrollbar-width:none}
+.topnav::-webkit-scrollbar{display:none}
+.topnav a{flex:none;text-decoration:none;color:#cfd3d8;background:#1c1f23;border:1px solid #33383f;border-radius:20px;padding:7px 12px;font:600 13px Barlow,system-ui,sans-serif}
+.topnav a.on{background:#f5c518;color:#111;border-color:#f5c518}
 </style>
 </head>
 <body>
@@ -682,7 +686,7 @@ function priority(q){const s=st(q.id);if(s.last===null)return 2;return s.w*2-s.r
 function home(){
   const total=mastered(Q),bms=Object.keys(store.bm).filter(k=>store.bm[k]).length;
   const answered=Q.filter(q=>st(q.id).last!==null).length;
-  $('app').innerHTML='<div class="hazard"></div><a class="back" href="index.html">← Garage</a>'+
+  $('app').innerHTML='<div class="hazard"></div><nav class="topnav"><a href="index.html">Garage</a><a href="quick.html">Quick jobs</a><a href="fan.html">Fan lab</a><a href="ign.html">Ignition lab</a><a href="ase.html" class="on">ASE prep</a></nav>'+
    '<h1>ASE <span>Prep</span></h1><p class="sub">'+Q.length+' practice questions for the ASE Automobile tests A1–A8. '+answered+' answered, '+total+' currently correct.</p>'+
    '<div class="grid2"><button class="feat" onclick="smart()"><b>Smart review</b><span>20 questions, weakest and unseen first</span></button>'+
    '<button class="feat" onclick="examPick()"><b>Exam simulation</b><span>Timed, weighted like the real test</span></button>'+
