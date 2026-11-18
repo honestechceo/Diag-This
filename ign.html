@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Check Engine: Ignition Circuit Lab</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -160,6 +160,7 @@ details[open]>summary .fcLab{background:#f5c518;color:#111}
 .fcBack{background:#24282d;border:1px solid #f5c518;color:#f5c518;border-radius:10px;padding:8px 12px;font:700 14px Barlow,system-ui,sans-serif;min-height:40px}
 #fcReturn{position:fixed;top:10px;left:10px;z-index:35;display:none;background:#f5c518;color:#111;border:0;border-radius:22px;padding:10px 16px;font:700 14px Barlow,system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.55)}
 </style>
+<link rel="stylesheet" href="diagnostic-redesign.css">
 </head>
 <body>
 <div class="wrap">
@@ -199,7 +200,27 @@ details[open]>summary .fcLab{background:#f5c518;color:#111}
     <button class="lead sb" id="L_B" onclick="setLead('B')"><span class="dot" style="background:#3fd0ff"></span>Scope B</button>
   </div>
 
-  <div class="diagram">
+  <section class="vehicle-context" aria-label="Vehicle component location overview">
+<div class="vehicle-context__header"><strong>Vehicle inspection bay</strong><span>IGNITION SYSTEM · TRAINING MODEL</span></div>
+<svg class="vehicle-context__art" viewBox="0 0 760 310" role="img" aria-label="Illustrated front engine bay showing major components and their relative locations">
+<defs><linearGradient id="hood" x2="0" y2="1"><stop stop-color="#66798b"/><stop offset="1" stop-color="#263748"/></linearGradient><linearGradient id="block" x2="0" y2="1"><stop stop-color="#5b6878"/><stop offset="1" stop-color="#1b2530"/></linearGradient></defs>
+<rect x="20" y="12" width="720" height="286" rx="42" fill="#0a1119" stroke="#60768b" stroke-width="7"/>
+<path d="M70 45 Q380 -5 690 45 L671 83 H89Z" fill="url(#hood)" stroke="#91a5b7" stroke-width="3"/>
+<path d="M92 83 H668 V270 H92Z" fill="#111b25" stroke="#344b5c" stroke-width="3"/>
+<rect x="247" y="95" width="292" height="145" rx="30" fill="url(#block)" stroke="#a1adbb" stroke-width="4"/>
+<path d="M280 118 H506 M280 135 H506" stroke="#101b25" stroke-width="8" stroke-linecap="round"/>
+<rect x="280" y="152" width="43" height="54" rx="8" fill="#1c2d3e" stroke="#ffd15c" stroke-width="3"/><text x="301" y="184" text-anchor="middle" fill="#edf3fa" font-size="17" font-weight="bold">1</text><rect x="340" y="152" width="43" height="54" rx="8" fill="#1c2d3e" stroke="#ffd15c" stroke-width="3"/><text x="361" y="184" text-anchor="middle" fill="#edf3fa" font-size="17" font-weight="bold">2</text><rect x="400" y="152" width="43" height="54" rx="8" fill="#1c2d3e" stroke="#ffd15c" stroke-width="3"/><text x="421" y="184" text-anchor="middle" fill="#edf3fa" font-size="17" font-weight="bold">3</text><rect x="460" y="152" width="43" height="54" rx="8" fill="#1c2d3e" stroke="#ffd15c" stroke-width="3"/><text x="481" y="184" text-anchor="middle" fill="#edf3fa" font-size="17" font-weight="bold">4</text>
+<rect x="111" y="118" width="106" height="93" rx="12" fill="#202b38" stroke="#91a3b7" stroke-width="4"/><rect x="127" y="134" width="75" height="24" rx="4" fill="#d8b24b"/><text x="164" y="184" text-anchor="middle" fill="#fff" font-size="15">12V</text>
+<rect x="566" y="113" width="82" height="62" rx="9" fill="#2b3746" stroke="#849ab1" stroke-width="3"/><text x="607" y="146" text-anchor="middle" fill="#f3f6fb" font-size="12">FUSES</text>
+<rect x="550" y="193" width="102" height="60" rx="12" fill="#1e303e" stroke="#8da5b8" stroke-width="3"/><rect x="564" y="204" width="75" height="37" rx="7" fill="#c65d81" opacity=".7"/>
+<rect x="245" y="258" width="294" height="26" rx="7" fill="#334858" stroke="#718ba1" stroke-width="2"/>
+<circle cx="390" cy="270" r="11" fill="#a7bccb"/>
+<path d="M218 163 C238 155 243 150 257 154 M538 163 C553 151 557 140 567 143" stroke="#f3bd4a" stroke-width="6" fill="none" stroke-linecap="round"/>
+<g fill="#e7eef7" font-family="system-ui,sans-serif" font-size="14" font-weight="700">
+<text x="164" y="234" text-anchor="middle">BATTERY</text><text x="607" y="100" text-anchor="middle">FUSE BOX</text>
+<text x="393" y="85" text-anchor="middle">ENGINE / COIL COVER</text><text x="601" y="270" text-anchor="middle">COOLANT</text>
+</g>
+</svg><div class="vehicle-context__caption">Component-location reference for a generic inline-four engine. Use the live wiring schematic below to place probes and measure the simulated fault. Not a manufacturer wiring diagram.</div></section><div class="diagram">
     <div class="chips"><div class="chip" id="chipEng">ENGINE OFF</div></div>
     <svg id="dia" viewBox="0 0 400 420" xmlns="http://www.w3.org/2000/svg">
       <defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#161b20" stroke-width="1"/></pattern></defs>
