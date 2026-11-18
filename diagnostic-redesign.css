@@ -1,0 +1,26 @@
+/* Phase 2: mobile diagnostic workspace and vehicle context. Existing live circuit SVG and test handlers remain intact. */
+:root{--bg:#0b111a;--panel:#172332;--panel2:#233245;--line:#42546b;--text:#f4f7fb;--muted:#bac7d6;--yellow:#ffbf40;--green:#73efac}
+html{-webkit-text-size-adjust:100%;color-scheme:dark}
+body{background:radial-gradient(ellipse at top,#1b3047,#0a1019 70%)}
+.wrap{max-width:900px;padding: max(12px,env(safe-area-inset-top)) 12px calc(180px + env(safe-area-inset-bottom))}
+button{min-height:44px;-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,.tp:focus-visible{outline:3px solid #54c8ff;outline-offset:3px}
+.card{border-radius:17px;box-shadow:0 12px 32px #0003}
+.diagram{background:linear-gradient(150deg,#0c1826,#0b1019);border:1px solid #455970;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 40px #0004}
+.diagram svg{height:auto;min-height:0;touch-action:manipulation}
+.tp circle.hit{stroke:transparent;stroke-width:18}
+.tp circle.ring{stroke:#ffd15c;stroke-width:2.6}
+.leadbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.lead{min-height:49px;border-radius:13px;font-size:15px}
+.actions{gap:9px}
+.act{border-radius:12px;min-height:50px}
+.dmm{padding:8px 12px max(12px,env(safe-area-inset-bottom));pointer-events:none}
+.dmmIn{pointer-events:auto;box-shadow:0 12px 42px #000b}
+.vehicle-context{margin:14px 0;background:linear-gradient(135deg,#1b2b3c,#111b28);border:1px solid #40556c;border-radius:18px;overflow:hidden}
+.vehicle-context__header{padding:12px 15px 0;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.vehicle-context__header strong{font:700 20px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.vehicle-context__header span{font:600 10px 'JetBrains Mono',monospace;color:#ffce69}
+.vehicle-context__art{width:100%;height:auto;display:block}
+.vehicle-context__caption{font-size:12px;color:#b9c7d8;padding:0 15px 14px;line-height:1.45}
+@media(max-width:520px){.wrap{padding-left:10px;padding-right:10px}.stats{gap:3px}.stat{min-width:45px;padding:5px}.lead{font-size:14px}.vehicle-context__header strong{font-size:18px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
